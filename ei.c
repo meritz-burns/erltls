@@ -13,37 +13,47 @@ typedef unsigned char byte;
 int
 main()
 {
-	ETERM *tuplep, *intp;
-	ETERM *fnp, *argp;
-	int res;
+        int i;
+        int j;
+        int arity;
+        int res;
+        char funp[MAXATOMLEN];
 	byte *buf;
-	long allocated, freed;
+	byte *out_buf;
+        long longp;
+        char *out;
 
         if ((buf = calloc(100, sizeof(byte))) == NULL)
           err(1, "calloc");
-
-	erl_init(NULL, 0);
+        if ((out_buf = calloc(100, sizeof(byte))) == NULL)
+          err(1, " outbuf calloc");
 
 	while (read_cmd(buf) > 0) {
-		tuplep = erl_decode(buf);
-		fnp = erl_element(1, tuplep);
-		argp = erl_element(2, tuplep);
+		i = 0;
+                if (ei_decode_version(buf, &i, NULL) != 0)
+                  errx(1, "ei_decode_version");
+                if (ei_decode_tuple_header(buf, &i, &arity) != 0)
+                  errx(1, "ei_decode_tuple_header");
+                if (ei_decode_atom(buf, &i, funp) != 0)
+                  errx(1, "ei_decode_atom");
+                if (ei_decode_long(buf, &i, &longp) != 0)
+                  errx(1, "ei_decode_ei_long");
 
-		if (strncmp(ERL_ATOM_PTR(fnp), "foo", 3) == 0) {
-			res = foo(ERL_INT_VALUE(argp));
-		} else if (strncmp(ERL_ATOM_PTR(fnp), "bar", 17) == 0) {
-			res = bar(ERL_INT_VALUE(argp));
-		}
+		if (strncmp(funp, "foo", MAXATOMLEN) == 0)
+			res = foo((int)longp);
+                else if (strncmp(funp, "bar", MAXATOMLEN) == 0)
+			res = bar((int)longp);
 
-		intp = erl_mk_int(res);
-		erl_encode(intp, buf);
-		write_cmd(buf, erl_term_len(intp));
+                j = 0;
+                if (ei_encode_version(out_buf, &j) != 0)
+                  errx(1, "ei_encode_version");
+		if (ei_encode_long(out_buf, &j, (long)res) != 0)
+                  errx(1, "ei_encode_long");
+		write_cmd(out_buf, j);
 
-		erl_free_compound(tuplep);
-		erl_free_term(fnp);
-		erl_free_term(argp);
-		erl_free_term(intp);
 	}
 
         free(buf);
+        free(out_buf);
+
 }

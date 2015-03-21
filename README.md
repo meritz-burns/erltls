@@ -11,10 +11,8 @@ http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-current/man3/tls_accept_socket.3?
 
 http://erlang.org/doc/tutorial/erl_interface.html#id62544
 
-1> c(complex).
-{ok,complex}
-2> complex:start("/home/rebecca/libtls-erlang/foobar").
-<0.48.0>
-3> complex:foo(2).
+c(complex).
+complex:start("/home/rebecca/libtls-erlang/foobar").
+complex:foo(2).
 
 ```
