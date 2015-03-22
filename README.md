@@ -10,6 +10,22 @@ Debian installation
 apt-get install build-essential erlang-dev
 ```
 
+Install libressl-portable.
+
+To install it into `/opt`, understand and do this:
+
+```sh
+curl -LO http://...libressl-portable.tar.gz
+tar -zxf libressl-portable*tar.gz
+cd libressl
+./configure --prefix=/opt
+make check
+sudo make install
+sudo sh -c 'echo /opt/libressl/lib > /etc/ld.so.conf.d/libressl'
+sudo ldconfig
+echo export PKG_CONFIG_PATH=/opt/libressl/lib/pkgconfig > ~/.profile
+```
+
 OpenBSD installation
 --------------------
 
