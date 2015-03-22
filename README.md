@@ -10,13 +10,6 @@ Debian installation
 apt-get install build-essential erlang-dev
 ```
 
-Debian compilation
-------------------
-
-```sh
-gcc -Werror -I/usr/lib/erlang/lib/erl_interface-3.7.20/include -L/usr/lib/erlang/lib/erl_interface-3.7.20/lib -o foobar ei.c erl_comm.c complex.c -lerl_interface -lei -lpthread
-```
-
 OpenBSD installation
 --------------------
 
@@ -24,11 +17,19 @@ OpenBSD installation
 pkg_add erlang
 ```
 
-OpenBSD compilation
--------------------
+Build from repo
+---------------
+
+First time:
 
 ```sh
-gcc -Wall -Wextra -pedantic-errors -Werror -std=c99 -I/usr/local/lib/erlang/lib/erl_interface-3.7.15/include -L/usr/local/lib/erlang/lib/erl_interface-3.7.15/lib -o foobar ei.c erl_comm.c complex.c -lerl_interface -lei -lpthread
+./autogen.sh && ./configure
+```
+
+After changing C code:
+
+```sh
+make
 ```
 
 Try it from erl
@@ -36,7 +37,7 @@ Try it from erl
 
 ```erlang
 c(complex).
-complex:start("/home/rebecca/libtls-erlang/foobar").
+complex:start("/home/rebecca/libtls-erlang/erltls").
 complex:foo(2).
 ```
 

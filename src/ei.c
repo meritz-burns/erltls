@@ -15,6 +15,8 @@ main()
 	char funp[MAXATOMLEN], buf[100], out_buf[100];
 	long longp;
 
+	res = 0;
+
 	while (read_cmd(buf) > 0) {
 		i = 0;
 		if (ei_decode_version(buf, &i, NULL) != 0)
