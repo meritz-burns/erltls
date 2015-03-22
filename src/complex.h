@@ -8,5 +8,6 @@ struct green {
 int foo(int);
 struct green * bob();
 int bar(int);
+void john(struct green *);
 
 #endif

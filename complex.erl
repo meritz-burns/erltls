@@ -1,6 +1,6 @@
 -module(complex).
 -export([start/1, start/0, stop/0, init/1]).
--export([foo/1, bar/1, bob/0]).
+-export([foo/1, bar/1, bob/0, john/1]).
 
 -record(green, {x, y}).
 
@@ -12,6 +12,11 @@ start(ExtPrg) ->
 stop() ->
     complex ! stop.
 
+% config_free
+john(GreenRef) ->
+  call_port({john, GreenRef}).
+
+% config_new
 bob() ->
   call_port({bob}).
 

@@ -1,13 +1,21 @@
 #include <stdlib.h>
 #include "complex.h"
 
+void
+john(struct green *j)
+{
+  free(j);
+}
+
 int
-foo(int x) {
+foo(int x)
+{
 	return x+1;
 }
 
 struct green *
-bob() {
+bob()
+{
 	struct green *result;
 
 	if ((result = malloc(sizeof(struct green))) == NULL)
