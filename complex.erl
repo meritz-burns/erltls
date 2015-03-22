@@ -1,14 +1,23 @@
 -module(complex).
--export([start/1, stop/0, init/1]).
--export([foo/1, bar/1]).
+-export([start/1, start/0, stop/0, init/1]).
+-export([foo/1, bar/1, bob/0]).
+
+-record(green, {x, y}).
+
+start() ->
+  start("/home/rebecca/libtls-erlang/src/erltls").
 
 start(ExtPrg) ->
     spawn(?MODULE, init, [ExtPrg]).
 stop() ->
     complex ! stop.
 
+bob() ->
+  call_port({bob}).
+
 foo(X) ->
     call_port({foo, X}).
+
 bar(Y) ->
     call_port({bar, Y}).
 
@@ -27,6 +36,13 @@ init(ExtPrg) ->
 
 loop(Port) ->
     receive
+	{call, Caller} ->
+	    Port ! {self(), {command}},
+	    receive
+		{Port, {data, Data}} ->
+		    Caller ! {complex, binary_to_term(Data)}
+	    end,
+	    loop(Port);
 	{call, Caller, Msg} ->
 	    Port ! {self(), {command, term_to_binary(Msg)}},
 	    receive
