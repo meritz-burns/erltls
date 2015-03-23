@@ -90,3 +90,7 @@ Authors
 * [Rebecca Meritz](http://rebecca.meritz.com/)
 
 [Donate to the OpenBSD Foundation](http://www.openbsdfoundation.org/donations.html).
+
+Released under the [ISC license][LICENSE].
+
+[LICENSE]: https://github.com/meritz-burns/erltls/blob/master/LICENSE
