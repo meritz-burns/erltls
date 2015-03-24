@@ -17,6 +17,8 @@
 -export([foo/1, bar/1, bob/0, john/1]).
 -export([
          tls_init/0
+        ,tls_config_new/0
+        ,tls_config_free/1
         ]).
 
 start() ->
@@ -44,6 +46,12 @@ bar(Y) ->
 
 tls_init() ->
     call_port({tls_init}).
+
+tls_config_new() ->
+    call_port({tls_config_new}).
+
+tls_config_free(ConfigRefNo) ->
+    call_port({tls_config_free, ConfigRefNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},

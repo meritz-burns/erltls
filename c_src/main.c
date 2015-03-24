@@ -31,14 +31,17 @@ int
 main()
 {
 	int i, j, arity, res;
-	long res_struct_index, idx;
+	long res_struct_index, idx, config_idx;
 	char funp[MAXATOMLEN], buf[100], out_buf[100];
 	long longp;
 	struct green *res_struct;
 	struct green *res_structs[100];
+	struct tls_config *config;
+	struct tls_config *configs[100];
 
 	res = 0;
 	res_struct_index = 0;
+	config_idx = 0;
 
 	while (read_cmd(buf) > 0) {
 		i = 0;
@@ -97,6 +100,32 @@ main()
 				if (ei_encode_atom(out_buf, &j, "error"))
 					errx(1, "ei_encode_atom");
 			}
+		} else if (strncmp(funp, "tls_config_new", MAXATOMLEN) == 0) {
+			if ((config = tls_config_new()) == NULL) {
+				if (ei_encode_version(out_buf, &j) != 0)
+					errx(1, "ei_encode_version");
+				if (ei_encode_atom(out_buf, &j, "error"))
+					errx(1, "ei_encode_atom");
+			} else {
+				if (ei_encode_version(out_buf, &j) != 0)
+					errx(1, "ei_encode_version");
+				if (ei_encode_tuple_header(out_buf, &j, 2))
+					errx(1, "ei_encode_tuple_header");
+				if (ei_encode_atom(out_buf, &j, "ok"))
+					errx(1, "ei_encode_atom");
+				if (ei_encode_long(out_buf, &j, config_idx) != 0)
+					errx(1, "ei_encode_long");
+				configs[config_idx++] = config;
+			}
+		} else if (strncmp(funp, "tls_config_free", MAXATOMLEN) == 0) {
+			if (ei_decode_long(buf, &i, &idx) != 0)
+				errx(1, "ei_decode_ei_long");
+			tls_config_free(configs[idx]);
+			configs[idx] = NULL;
+			if (ei_encode_version(out_buf, &j) != 0)
+				errx(1, "ei_encode_version");
+			if (ei_encode_atom(out_buf, &j, "ok"))
+				errx(1, "ei_encode_atom");
 		}
 
 		write_cmd(out_buf, j);

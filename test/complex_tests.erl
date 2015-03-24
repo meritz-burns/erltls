@@ -19,15 +19,18 @@ john_and_bob_test_() ->
              [?_assertEqual(complex:john(GreenRef), ok)]
           end).
 
-tls_init_test_() ->
+tls_config_new_and_free_test_() ->
   ?setup(fun(_) ->
-             [?_assertEqual(complex:tls_init(), ok)]
+             {ok, ConfigRefNo} = complex:tls_config_new(),
+             [?_assertEqual(complex:tls_config_free(ConfigRefNo), ok)]
           end).
+
 
 start() ->
   Pid = complex:start(),
   timer:sleep(1),
-  ?assertEqual(Pid, whereis(complex)).
+  Pid = whereis(complex),
+  ok = complex:tls_init().
 
 stop(_) ->
   complex:stop().
