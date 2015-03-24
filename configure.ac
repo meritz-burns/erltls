@@ -20,6 +20,6 @@ AC_PROG_CC
 AC_PROG_CC_STDC
 AC_CONFIG_FILES([
                  Makefile
-                 c_src/Makefile
+                 csrc/Makefile
                  ])
 AC_OUTPUT

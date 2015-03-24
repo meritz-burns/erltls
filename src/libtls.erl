@@ -12,7 +12,7 @@
 % ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 % OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
--module(complex).
+-module(libtls).
 -export([start/0, start/1, stop/0, init/1]).
 -export([
          tls_init/0
@@ -21,7 +21,7 @@
         ]).
 
 start() ->
-  start("/home/rebecca/erltls/c_src/erltls").
+  start("/home/rebecca/erltls/csrc/erltls").
 
 start(C_BIN) ->
     spawn(?MODULE, init, [C_BIN]).
