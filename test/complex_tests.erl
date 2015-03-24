@@ -19,6 +19,11 @@ john_and_bob_test_() ->
              [?_assertEqual(complex:john(GreenRef), ok)]
           end).
 
+tls_init_test_() ->
+  ?setup(fun(_) ->
+             [?_assertEqual(complex:tls_init(), ok)]
+          end).
+
 start() ->
   Pid = complex:start(),
   timer:sleep(1),

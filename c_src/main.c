@@ -17,6 +17,9 @@
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+#include <tls.h>
 
 #include <erl_interface.h>
 #include <ei.h>
@@ -82,6 +85,18 @@ main()
 				errx(1, "ei_encode_version");
 			if (ei_encode_atom(out_buf, &j, "ok"))
 				errx(1, "ei_encode_atom");
+		} else if (strncmp(funp, "tls_init", MAXATOMLEN) == 0) {
+			if (tls_init() == 0) {
+				if (ei_encode_version(out_buf, &j) != 0)
+					errx(1, "ei_encode_version");
+				if (ei_encode_atom(out_buf, &j, "ok"))
+					errx(1, "ei_encode_atom");
+			} else {
+				if (ei_encode_version(out_buf, &j) != 0)
+					errx(1, "ei_encode_version");
+				if (ei_encode_atom(out_buf, &j, "error"))
+					errx(1, "ei_encode_atom");
+			}
 		}
 
 		write_cmd(out_buf, j);

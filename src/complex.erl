@@ -15,6 +15,9 @@
 -module(complex).
 -export([start/0, start/1, stop/0, init/1]).
 -export([foo/1, bar/1, bob/0, john/1]).
+-export([
+         tls_init/0
+        ]).
 
 start() ->
   start("/home/rebecca/erltls/c_src/erltls").
@@ -38,6 +41,9 @@ foo(X) ->
 
 bar(Y) ->
     call_port({bar, Y}).
+
+tls_init() ->
+    call_port({tls_init}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
