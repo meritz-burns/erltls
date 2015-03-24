@@ -48,13 +48,33 @@ After changing C code:
 make
 ```
 
+After changing Erlang code:
+
+```sh
+./rebar compile
+```
+
+Cleaning
+--------
+
+```sh
+make clean
+./rebar clean
+```
+
+Testing
+-------
+
+```sh
+./rebar eunit
+```
+
 Try it from erl
 ---------------
 
 ```erlang
-c(complex).
-complex:start("/home/rebecca/libtls-erlang/erltls").
-complex:foo(2).
+code:add_path("ebin").
+l(complex).
 ```
 
 External documentation

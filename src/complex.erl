@@ -1,9 +1,9 @@
 % Copyright (c) 2015 Mike Burns, Rebecca Meritz <rebecca@meritz.com>
-% 
+%
 % Permission to use, copy, modify, and distribute this software for any
 % purpose with or without fee is hereby granted, provided that the above
 % copyright notice and this permission notice appear in all copies.
-% 
+%
 % THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 % WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 % MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -13,18 +13,17 @@
 % OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 -module(complex).
--export([start/1, start/0, stop/0, init/1]).
+-export([start/0, start/1, stop/0, init/1]).
 -export([foo/1, bar/1, bob/0, john/1]).
 
--record(green, {x, y}).
-
 start() ->
-  start("/home/rebecca/libtls-erlang/src/erltls").
+  start("/home/rebecca/erltls/c_src/erltls").
 
-start(ExtPrg) ->
-    spawn(?MODULE, init, [ExtPrg]).
+start(C_BIN) ->
+    spawn(?MODULE, init, [C_BIN]).
+
 stop() ->
-    complex ! stop.
+    ?MODULE ! stop.
 
 % config_free
 john(GreenRef) ->
@@ -41,14 +40,14 @@ bar(Y) ->
     call_port({bar, Y}).
 
 call_port(Msg) ->
-    complex ! {call, self(), Msg},
+    ?MODULE ! {call, self(), Msg},
     receive
-	{complex, Result} ->
+	{?MODULE, Result} ->
 	    Result
     end.
 
 init(ExtPrg) ->
-    register(complex, self()),
+    register(?MODULE, self()),
     process_flag(trap_exit, true),
     Port = open_port({spawn, ExtPrg}, [{packet, 2}, binary]),
     loop(Port).
@@ -59,14 +58,14 @@ loop(Port) ->
 	    Port ! {self(), {command}},
 	    receive
 		{Port, {data, Data}} ->
-		    Caller ! {complex, binary_to_term(Data)}
+		    Caller ! {?MODULE, binary_to_term(Data)}
 	    end,
 	    loop(Port);
 	{call, Caller, Msg} ->
 	    Port ! {self(), {command, term_to_binary(Msg)}},
 	    receive
 		{Port, {data, Data}} ->
-		    Caller ! {complex, binary_to_term(Data)}
+		    Caller ! {?MODULE, binary_to_term(Data)}
 	    end,
 	    loop(Port);
 	stop ->
