@@ -14,7 +14,6 @@
 
 -module(complex).
 -export([start/0, start/1, stop/0, init/1]).
--export([foo/1, bar/1, bob/0, john/1]).
 -export([
          tls_init/0
         ,tls_config_new/0
@@ -29,20 +28,6 @@ start(C_BIN) ->
 
 stop() ->
     ?MODULE ! stop.
-
-% config_free
-john(GreenRef) ->
-  call_port({john, GreenRef}).
-
-% config_new
-bob() ->
-  call_port({bob}).
-
-foo(X) ->
-    call_port({foo, X}).
-
-bar(Y) ->
-    call_port({bar, Y}).
 
 tls_init() ->
     call_port({tls_init}).
