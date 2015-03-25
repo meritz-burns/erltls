@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "/opt/libressl/include/tls.h"
+#include "tls.h"
 
 #include <erl_interface.h>
 #include <ei.h>
