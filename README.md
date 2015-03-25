@@ -10,9 +10,7 @@ Debian installation
 apt-get install build-essential erlang-dev
 ```
 
-Install libressl-portable.
-
-To install it into `/opt`, understand and do this:
+Install libressl-portable. To install it into `/opt`, understand and do this:
 
 ```sh
 curl -LO http://...libressl-portable.tar.gz
@@ -42,13 +40,7 @@ First time:
 ./autogen.sh && ./configure
 ```
 
-After changing C code:
-
-```sh
-make
-```
-
-After changing Erlang code:
+After changing code:
 
 ```sh
 ./rebar compile
@@ -58,7 +50,6 @@ Cleaning
 --------
 
 ```sh
-make clean
 ./rebar clean
 ```
 
@@ -67,6 +58,20 @@ Testing
 
 ```sh
 ./rebar eunit
+```
+
+When things go crazy
+--------------------
+
+See `rebar.config`: as part of cleaning the Erlang, it also runs `make clean`;
+as part of compiling the Erlang, it also runs `make`.
+
+If you just want to try to get things working again without much thought, try this:
+
+```sh
+make distclean ; ./autogen.sh && ./configure
+./rebar clean
+./rebar compile
 ```
 
 Try it from erl
