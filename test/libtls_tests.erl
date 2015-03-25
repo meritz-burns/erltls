@@ -8,7 +8,9 @@ tls_config_test_() ->
              {ok, ConfigRefNo} = libtls:tls_config_new(),
              [
                ?_assertEqual(libtls:tls_config_set_ca_file(
-                               ConfigRefNo, "/fake/ca/cert.crt"), ok)
+                               ConfigRefNo, "/fake/ca.crt"), ok)
+             , ?_assertEqual(libtls:tls_config_set_ca_path(
+                               ConfigRefNo, "/fake-path/"), ok)
              , ?_assertEqual(libtls:tls_config_free(ConfigRefNo), ok)
              ]
           end).

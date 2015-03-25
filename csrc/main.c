@@ -36,6 +36,7 @@ static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
 static void handle_tls_config_free(char *, int *, char *, int *);
 static void handle_tls_config_set_ca_file(char *, int *, char *, int *);
+static void handle_tls_config_set_ca_path(char *, int *, char *, int *);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -49,7 +50,8 @@ struct handle handles[] = {
 	{"tls_init", handle_tls_init},
 	{"tls_config_new", handle_tls_config_new},
 	{"tls_config_free", handle_tls_config_free},
-	{"tls_config_set_ca_file", handle_tls_config_set_ca_file}
+	{"tls_config_set_ca_file", handle_tls_config_set_ca_file},
+	{"tls_config_set_ca_path", handle_tls_config_set_ca_path}
 };
 
 int
@@ -63,7 +65,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 4; k++)
+		for (k = 0; k < 5; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -132,6 +134,29 @@ handle_tls_config_set_ca_file(char *buf, int *i, char *out_buf, int *j)
 	}
 
 	free(ca_file);
+}
+
+void
+handle_tls_config_set_ca_path(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx;
+	char *ca_path;
+
+	if ((ca_path = calloc(100, sizeof(char))) == NULL)
+		errx(1, "calloc");
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_string(buf, i, ca_path) != 0)
+		errx(1, "ei_decode_string");
+
+	if (tls_config_set_ca_path(configs[idx], ca_path) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+
+	free(ca_path);
 }
 
 void
