@@ -21,7 +21,8 @@
         ]).
 
 start() ->
-  start("/home/rebecca/erltls/csrc/erltls").
+  Bin = filename:join(["csrc", "erltls"]),
+  start(Bin).
 
 start(C_BIN) ->
     spawn(?MODULE, init, [C_BIN]).

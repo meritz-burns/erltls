@@ -74,7 +74,7 @@ Try it from erl
 
 ```erlang
 code:add_path("ebin").
-l(complex).
+l(libtls).
 ```
 
 External documentation

@@ -10,8 +10,12 @@ tls_config_new_and_free_test_() ->
           end).
 
 
+bin_path() ->
+  filename:join([filename:absname(".."), "csrc", "erltls"]).
+
 start() ->
-  Pid = libtls:start(),
+  Bin = bin_path(),
+  Pid = libtls:start(Bin),
   timer:sleep(1),
   Pid = whereis(libtls),
   ok = libtls:tls_init().
