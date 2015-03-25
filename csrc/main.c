@@ -32,16 +32,18 @@ static void encode_error(char *, int *);
 static void encode_ok_tuple_header(char *, int *);
 static void decode_function_call(char *, int *, char *);
 
+static void handle_tls_init(char *, int *, char *, int *);
+static void handle_tls_config_new(char *, int *, char *, int *);
+static void handle_tls_config_free(char *, int *, char *, int *);
+
+struct tls_config *configs[100];
+long config_idx = 0;
+
 int
 main()
 {
 	int i, j;
-	long idx, config_idx;
 	char funp[MAXATOMLEN], buf[100], out_buf[100];
-	struct tls_config *config;
-	struct tls_config *configs[100];
-
-	config_idx = 0;
 
 	while (read_cmd(buf) > 0) {
 		i = j = 0;
@@ -49,32 +51,54 @@ main()
 		decode_function_call(buf, &i, funp);
 
 		if (strncmp(funp, "tls_init", MAXATOMLEN) == 0) {
-			if (tls_init() == 0) {
-				encode_ok(out_buf, &j);
-			} else {
-				encode_error(out_buf, &j);
-			}
+			handle_tls_init(buf, &i, out_buf, &j);
 		} else if (strncmp(funp, "tls_config_new", MAXATOMLEN) == 0) {
-			if ((config = tls_config_new()) == NULL) {
-				encode_error(out_buf, &j);
-			} else {
-				encode_ok_tuple_header(out_buf, &j);
-				if (ei_encode_long(out_buf, &j, config_idx) != 0)
-					errx(1, "ei_encode_long");
-				configs[config_idx++] = config;
-			}
+			handle_tls_config_new(buf, &i, out_buf, &j);
 		} else if (strncmp(funp, "tls_config_free", MAXATOMLEN) == 0) {
-			if (ei_decode_long(buf, &i, &idx) != 0)
-				errx(1, "ei_decode_ei_long");
-			tls_config_free(configs[idx]);
-			configs[idx] = NULL;
-			encode_ok(out_buf, &j);
+			handle_tls_config_free(buf, &i, out_buf, &j);
 		}
 
 		write_cmd(out_buf, j);
 	}
 
 	return 0;
+}
+
+void
+handle_tls_init(char *buf, int *i, char *out_buf, int *j)
+{
+	if (tls_init() == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+}
+
+void
+handle_tls_config_new(char *buf, int *i, char *out_buf, int *j)
+{
+	struct tls_config *config;
+
+	if ((config = tls_config_new()) == NULL) {
+		encode_error(out_buf, j);
+	} else {
+		encode_ok_tuple_header(out_buf, j);
+		if (ei_encode_long(out_buf, j, config_idx) != 0)
+			errx(1, "ei_encode_long");
+		configs[config_idx++] = config;
+	}
+}
+
+void
+handle_tls_config_free(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx;
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	tls_config_free(configs[idx]);
+	configs[idx] = NULL;
+	encode_ok(out_buf, j);
 }
 
 void
