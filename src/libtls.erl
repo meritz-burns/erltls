@@ -20,6 +20,8 @@
         ,tls_config_free/1
         ,tls_config_set_ca_file/2
         ,tls_config_set_ca_path/2
+        ,tls_config_set_cert_file/2
+        ,tls_config_set_key_file/2
         ]).
 
 start() ->
@@ -50,6 +52,12 @@ tls_config_set_ca_file(ConfigRefNo, CAFile) ->
 
 tls_config_set_ca_path(ConfigRefNo, CAPath) ->
     call_port({tls_config_set_ca_path, ConfigRefNo, CAPath}).
+
+tls_config_set_cert_file(ConfigRefNo, CertFile) ->
+    call_port({tls_config_set_cert_file, ConfigRefNo, CertFile}).
+
+tls_config_set_key_file(ConfigRefNo, CAPath) ->
+    call_port({tls_config_set_key_file, ConfigRefNo, CAPath}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},

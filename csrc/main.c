@@ -37,6 +37,8 @@ static void handle_tls_config_new(char *, int *, char *, int *);
 static void handle_tls_config_free(char *, int *, char *, int *);
 static void handle_tls_config_set_ca_file(char *, int *, char *, int *);
 static void handle_tls_config_set_ca_path(char *, int *, char *, int *);
+static void handle_tls_config_set_cert_file(char *, int *, char *, int *);
+static void handle_tls_config_set_key_file(char *, int *, char *, int *);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -51,7 +53,9 @@ struct handle handles[] = {
 	{"tls_config_new", handle_tls_config_new},
 	{"tls_config_free", handle_tls_config_free},
 	{"tls_config_set_ca_file", handle_tls_config_set_ca_file},
-	{"tls_config_set_ca_path", handle_tls_config_set_ca_path}
+	{"tls_config_set_ca_path", handle_tls_config_set_ca_path},
+	{"tls_config_set_cert_file", handle_tls_config_set_cert_file},
+	{"tls_config_set_key_file", handle_tls_config_set_key_file}
 };
 
 int
@@ -65,7 +69,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 5; k++)
+		for (k = 0; k < 7; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -157,6 +161,52 @@ handle_tls_config_set_ca_path(char *buf, int *i, char *out_buf, int *j)
 	}
 
 	free(ca_path);
+}
+
+void
+handle_tls_config_set_cert_file(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx;
+	char *cert_file;
+
+	if ((cert_file = calloc(100, sizeof(char))) == NULL)
+		errx(1, "calloc");
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_string(buf, i, cert_file) != 0)
+		errx(1, "ei_decode_string");
+
+	if (tls_config_set_cert_file(configs[idx], cert_file) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+
+	free(cert_file);
+}
+
+void
+handle_tls_config_set_key_file(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx;
+	char *key_file;
+
+	if ((key_file = calloc(100, sizeof(char))) == NULL)
+		errx(1, "calloc");
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_string(buf, i, key_file) != 0)
+		errx(1, "ei_decode_string");
+
+	if (tls_config_set_key_file(configs[idx], key_file) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+
+	free(key_file);
 }
 
 void
