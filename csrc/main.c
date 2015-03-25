@@ -36,13 +36,24 @@ static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
 static void handle_tls_config_free(char *, int *, char *, int *);
 
+struct handle {
+	char name[MAXATOMLEN];
+	void (*handler)(char *, int *, char *, int *);
+};
+
 struct tls_config *configs[100];
 long config_idx = 0;
+
+struct handle handles[] = {
+	{"tls_init", handle_tls_init},
+	{"tls_config_new", handle_tls_config_new},
+	{"tls_config_free", handle_tls_config_free}
+};
 
 int
 main()
 {
-	int i, j;
+	int i, j, k;
 	char funp[MAXATOMLEN], buf[100], out_buf[100];
 
 	while (read_cmd(buf) > 0) {
@@ -50,13 +61,10 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		if (strncmp(funp, "tls_init", MAXATOMLEN) == 0) {
-			handle_tls_init(buf, &i, out_buf, &j);
-		} else if (strncmp(funp, "tls_config_new", MAXATOMLEN) == 0) {
-			handle_tls_config_new(buf, &i, out_buf, &j);
-		} else if (strncmp(funp, "tls_config_free", MAXATOMLEN) == 0) {
-			handle_tls_config_free(buf, &i, out_buf, &j);
-		}
+		for (k = 0; k < 3; k++)
+			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
+				(handles[k].handler)(buf, &i, out_buf, &j);
+
 
 		write_cmd(out_buf, j);
 	}
