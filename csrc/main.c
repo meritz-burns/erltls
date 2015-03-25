@@ -19,17 +19,23 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <tls.h>
+#include "/opt/libressl/include/tls.h"
 
 #include <erl_interface.h>
 #include <ei.h>
 
 #include "erl_comm.h"
 
+
+static void encode_ok(char *, int *);
+static void encode_error(char *, int *);
+static void encode_ok_tuple_header(char *, int *);
+static void decode_function_call(char *, int *, char *);
+
 int
 main()
 {
-	int i, j, arity;
+	int i, j;
 	long idx, config_idx;
 	char funp[MAXATOMLEN], buf[100], out_buf[100];
 	struct tls_config *config;
@@ -38,40 +44,21 @@ main()
 	config_idx = 0;
 
 	while (read_cmd(buf) > 0) {
-		i = 0;
-		j = 0;
-		if (ei_decode_version(buf, &i, NULL) != 0)
-			errx(1, "ei_decode_version");
-		if (ei_decode_tuple_header(buf, &i, &arity) != 0)
-			errx(1, "ei_decode_tuple_header");
-		if (ei_decode_atom(buf, &i, funp) != 0)
-			errx(1, "ei_decode_atom");
+		i = j = 0;
+
+		decode_function_call(buf, &i, funp);
 
 		if (strncmp(funp, "tls_init", MAXATOMLEN) == 0) {
 			if (tls_init() == 0) {
-				if (ei_encode_version(out_buf, &j) != 0)
-					errx(1, "ei_encode_version");
-				if (ei_encode_atom(out_buf, &j, "ok"))
-					errx(1, "ei_encode_atom");
+				encode_ok(out_buf, &j);
 			} else {
-				if (ei_encode_version(out_buf, &j) != 0)
-					errx(1, "ei_encode_version");
-				if (ei_encode_atom(out_buf, &j, "error"))
-					errx(1, "ei_encode_atom");
+				encode_error(out_buf, &j);
 			}
 		} else if (strncmp(funp, "tls_config_new", MAXATOMLEN) == 0) {
 			if ((config = tls_config_new()) == NULL) {
-				if (ei_encode_version(out_buf, &j) != 0)
-					errx(1, "ei_encode_version");
-				if (ei_encode_atom(out_buf, &j, "error"))
-					errx(1, "ei_encode_atom");
+				encode_error(out_buf, &j);
 			} else {
-				if (ei_encode_version(out_buf, &j) != 0)
-					errx(1, "ei_encode_version");
-				if (ei_encode_tuple_header(out_buf, &j, 2))
-					errx(1, "ei_encode_tuple_header");
-				if (ei_encode_atom(out_buf, &j, "ok"))
-					errx(1, "ei_encode_atom");
+				encode_ok_tuple_header(out_buf, &j);
 				if (ei_encode_long(out_buf, &j, config_idx) != 0)
 					errx(1, "ei_encode_long");
 				configs[config_idx++] = config;
@@ -81,14 +68,53 @@ main()
 				errx(1, "ei_decode_ei_long");
 			tls_config_free(configs[idx]);
 			configs[idx] = NULL;
-			if (ei_encode_version(out_buf, &j) != 0)
-				errx(1, "ei_encode_version");
-			if (ei_encode_atom(out_buf, &j, "ok"))
-				errx(1, "ei_encode_atom");
+			encode_ok(out_buf, &j);
 		}
 
 		write_cmd(out_buf, j);
 	}
 
 	return 0;
+}
+
+void
+decode_function_call(char *buf, int *i, char *funp)
+{
+	int arity;
+
+	if (ei_decode_version(buf, i, NULL) != 0)
+		errx(1, "ei_decode_version");
+	if (ei_decode_tuple_header(buf, i, &arity) != 0)
+		errx(1, "ei_decode_tuple_header");
+	if (ei_decode_atom(buf, i, funp) != 0)
+		errx(1, "ei_decode_atom");
+}
+
+void
+encode_ok(char *out_buf, int *j)
+{
+	if (ei_encode_version(out_buf, j) != 0)
+		errx(1, "ei_encode_version");
+	if (ei_encode_atom(out_buf, j, "ok"))
+		errx(1, "ei_encode_atom");
+}
+
+void
+encode_error(char *out_buf, int *j)
+{
+	if (ei_encode_version(out_buf, j) != 0)
+		errx(1, "ei_encode_version");
+	if (ei_encode_atom(out_buf, j, "error"))
+		errx(1, "ei_encode_atom");
+}
+
+void
+encode_ok_tuple_header(char *out_buf, int *j)
+{
+	if (ei_encode_version(out_buf, j) != 0)
+		errx(1, "ei_encode_version");
+	if (ei_encode_tuple_header(out_buf, j, 2))
+		errx(1, "ei_encode_tuple_header");
+	if (ei_encode_atom(out_buf, j, "ok"))
+		errx(1, "ei_encode_atom");
 }
