@@ -3,10 +3,14 @@
 
 -define(setup(F), {setup, fun start/0, fun stop/1, F}).
 
-tls_config_new_and_free_test_() ->
+tls_config_test_() ->
   ?setup(fun(_) ->
              {ok, ConfigRefNo} = libtls:tls_config_new(),
-             [?_assertEqual(libtls:tls_config_free(ConfigRefNo), ok)]
+             [
+               ?_assertEqual(libtls:tls_config_set_ca_file(
+                               ConfigRefNo, "/fake/ca/cert.crt"), ok)
+             , ?_assertEqual(libtls:tls_config_free(ConfigRefNo), ok)
+             ]
           end).
 
 

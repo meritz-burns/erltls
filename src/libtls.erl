@@ -18,6 +18,7 @@
          tls_init/0
         ,tls_config_new/0
         ,tls_config_free/1
+        ,tls_config_set_ca_file/2
         ]).
 
 start() ->
@@ -42,6 +43,9 @@ tls_config_new() ->
 
 tls_config_free(ConfigRefNo) ->
     call_port({tls_config_free, ConfigRefNo}).
+
+tls_config_set_ca_file(ConfigRefNo, CAFile) ->
+    call_port({tls_config_set_ca_file, ConfigRefNo, CAFile}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
