@@ -26,11 +26,13 @@
 
 #include "erl_comm.h"
 
+typedef int (*CONFIG_STRING_SETTER)(struct tls_config *, const char *);
 
 static void encode_ok(char *, int *);
 static void encode_error(char *, int *);
 static void encode_ok_tuple_header(char *, int *);
 static void decode_function_call(char *, int *, char *);
+static void config_set_string(char *, int *, char *, int *, CONFIG_STRING_SETTER);
 
 static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
@@ -120,93 +122,49 @@ handle_tls_config_free(char *buf, int *i, char *out_buf, int *j)
 void
 handle_tls_config_set_ca_file(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-	char *ca_file;
-
-	if ((ca_file = calloc(100, sizeof(char))) == NULL)
-		errx(1, "calloc");
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	if (ei_decode_string(buf, i, ca_file) != 0)
-		errx(1, "ei_decode_string");
-
-	if (tls_config_set_ca_file(configs[idx], ca_file) == 0) {
-		encode_ok(out_buf, j);
-	} else {
-		encode_error(out_buf, j);
-	}
-
-	free(ca_file);
+	config_set_string(buf, i, out_buf, j, tls_config_set_ca_file);
 }
 
 void
 handle_tls_config_set_ca_path(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-	char *ca_path;
-
-	if ((ca_path = calloc(100, sizeof(char))) == NULL)
-		errx(1, "calloc");
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	if (ei_decode_string(buf, i, ca_path) != 0)
-		errx(1, "ei_decode_string");
-
-	if (tls_config_set_ca_path(configs[idx], ca_path) == 0) {
-		encode_ok(out_buf, j);
-	} else {
-		encode_error(out_buf, j);
-	}
-
-	free(ca_path);
+	config_set_string(buf, i, out_buf, j, tls_config_set_ca_path);
 }
 
 void
 handle_tls_config_set_cert_file(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-	char *cert_file;
-
-	if ((cert_file = calloc(100, sizeof(char))) == NULL)
-		errx(1, "calloc");
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	if (ei_decode_string(buf, i, cert_file) != 0)
-		errx(1, "ei_decode_string");
-
-	if (tls_config_set_cert_file(configs[idx], cert_file) == 0) {
-		encode_ok(out_buf, j);
-	} else {
-		encode_error(out_buf, j);
-	}
-
-	free(cert_file);
+	config_set_string(buf, i, out_buf, j, tls_config_set_cert_file);
 }
 
 void
 handle_tls_config_set_key_file(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-	char *key_file;
+	config_set_string(buf, i, out_buf, j, tls_config_set_key_file);
 
-	if ((key_file = calloc(100, sizeof(char))) == NULL)
+}
+
+void
+config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER tls_config_set)
+{
+	long idx;
+	char *string;
+
+	if ((string = calloc(100, sizeof(char))) == NULL)
 		errx(1, "calloc");
 
 	if (ei_decode_long(buf, i, &idx) != 0)
 		errx(1, "ei_decode_ei_long");
-	if (ei_decode_string(buf, i, key_file) != 0)
+	if (ei_decode_string(buf, i, string) != 0)
 		errx(1, "ei_decode_string");
 
-	if (tls_config_set_key_file(configs[idx], key_file) == 0) {
+	if (tls_config_set(configs[idx], string) == 0) {
 		encode_ok(out_buf, j);
 	} else {
 		encode_error(out_buf, j);
 	}
 
-	free(key_file);
+	free(string);
 }
 
 void
