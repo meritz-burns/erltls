@@ -12,7 +12,17 @@ AX_PTHREAD([
             ],
             [AC_MSG_ERROR([pthreads was not found])])
 
-PKG_CHECK_MODULES([TLS], [libtls])
+case "$host_os" in
+  openbsd*)
+    TLS_LIBS=-ltls
+    PKG_CHECK_MODULES([SSL], [libssl])
+    ;;
+  *)
+    TLS_LIBS=
+    SSL_LIBS=
+    PKG_CHECK_MODULES([TLS], [libtls])
+    ;;
+esac
 
 AC_ERLANG_CHECK_LIB([erl_interface],
                     [],
