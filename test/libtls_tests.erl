@@ -6,16 +6,18 @@
 tls_config_test_() ->
   ?setup(fun(_) ->
              {ok, ConfigRefNo} = libtls:tls_config_new(),
+             {ok, ProtocolFlagsNo} = libtls:tls_config_parse_protocols("tlsv1.2"),
              [
-               ?_assertEqual(libtls:tls_config_set_ca_file(
-                               ConfigRefNo, "/fake/ca.crt"), ok)
-             , ?_assertEqual(libtls:tls_config_set_ca_path(
-                               ConfigRefNo, "/fake-path/"), ok)
-             , ?_assertEqual(libtls:tls_config_set_cert_file(
-                               ConfigRefNo, "/fake/cert.crt"), ok)
-             , ?_assertEqual(libtls:tls_config_set_key_file(
-                               ConfigRefNo, "/fake/key"), ok)
-             , ?_assertEqual(libtls:tls_config_free(ConfigRefNo), ok)
+               ?_assertEqual(8, ProtocolFlagsNo)
+             , ?_assertEqual(ok, libtls:tls_config_set_ca_file(
+                               ConfigRefNo, "/fake/ca.crt"))
+             , ?_assertEqual(ok, libtls:tls_config_set_ca_path(
+                               ConfigRefNo, "/fake-path/"))
+             , ?_assertEqual(ok, libtls:tls_config_set_cert_file(
+                               ConfigRefNo, "/fake/cert.crt"))
+             , ?_assertEqual(ok, libtls:tls_config_set_key_file(
+                               ConfigRefNo, "/fake/key"))
+             , ?_assertEqual(ok, libtls:tls_config_free(ConfigRefNo))
              ]
           end).
 

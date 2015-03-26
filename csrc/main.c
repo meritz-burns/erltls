@@ -41,6 +41,7 @@ static void handle_tls_config_set_ca_file(char *, int *, char *, int *);
 static void handle_tls_config_set_ca_path(char *, int *, char *, int *);
 static void handle_tls_config_set_cert_file(char *, int *, char *, int *);
 static void handle_tls_config_set_key_file(char *, int *, char *, int *);
+static void handle_tls_config_parse_protocols(char *, int *, char *, int *);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -57,7 +58,8 @@ struct handle handles[] = {
 	{"tls_config_set_ca_file", handle_tls_config_set_ca_file},
 	{"tls_config_set_ca_path", handle_tls_config_set_ca_path},
 	{"tls_config_set_cert_file", handle_tls_config_set_cert_file},
-	{"tls_config_set_key_file", handle_tls_config_set_key_file}
+	{"tls_config_set_key_file", handle_tls_config_set_key_file},
+	{"tls_config_parse_protocols", handle_tls_config_parse_protocols}
 };
 
 int
@@ -71,7 +73,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 7; k++)
+		for (k = 0; k < 8; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -80,6 +82,23 @@ main()
 	}
 
 	return 0;
+}
+
+void
+handle_tls_config_parse_protocols(char *buf, int *i, char *out_buf, int *j)
+{
+	uint32_t protocols;
+	char protostr[100];
+
+	if (ei_decode_string(buf, i, protostr) != 0)
+		errx(1, "ei_decode_string");
+	if (tls_config_parse_protocols(&protocols, protostr) == 0) {
+		encode_ok_tuple_header(out_buf, j);
+		if (ei_encode_long(out_buf, j, (long)protocols) != 0)
+			errx(1, "ei_encode_long");
+	} else {
+		encode_error(out_buf, j);
+	}
 }
 
 void
@@ -148,10 +167,7 @@ void
 config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER tls_config_set)
 {
 	long idx;
-	char *string;
-
-	if ((string = calloc(100, sizeof(char))) == NULL)
-		errx(1, "calloc");
+	char string[100];
 
 	if (ei_decode_long(buf, i, &idx) != 0)
 		errx(1, "ei_decode_ei_long");
@@ -163,8 +179,6 @@ config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER
 	} else {
 		encode_error(out_buf, j);
 	}
-
-	free(string);
 }
 
 void

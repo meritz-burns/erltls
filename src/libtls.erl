@@ -22,13 +22,14 @@
         ,tls_config_set_ca_path/2
         ,tls_config_set_cert_file/2
         ,tls_config_set_key_file/2
+        ,tls_config_parse_protocols/1
         ]).
 
 start() ->
   Compile = proplists:lookup(compile, ?MODULE:module_info()),
   Source = proplists:lookup(source, erlang:element(2, Compile)),
   Dirname = filename:dirname(erlang:element(2, Source)),
-  Path = lists:droplast(filename:split(Dirname)) ++ ["csrc", "erltls"],
+  Path = lists:delete("src", filename:split(Dirname)) ++ ["csrc", "erltls"],
   start(filename:join(Path)).
 
 
@@ -58,6 +59,9 @@ tls_config_set_cert_file(ConfigRefNo, CertFile) ->
 
 tls_config_set_key_file(ConfigRefNo, CAPath) ->
     call_port({tls_config_set_key_file, ConfigRefNo, CAPath}).
+
+tls_config_parse_protocols(Protostring) ->
+    call_port({tls_config_parse_protocols, Protostring}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
