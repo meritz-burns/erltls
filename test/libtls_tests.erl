@@ -18,8 +18,8 @@ tls_config_test_() ->
              ]
           end).
 
-tls_protocol_test_() ->
-  ?setup(fun(_ConfigRefNo) ->
+tls_protocols_test_() ->
+  ?setup(fun(ConfigRefNo) ->
              {ok, TLSV10} = libtls:tls_config_parse_protocols("tlsv1.0"),
              {ok, TLSV11} = libtls:tls_config_parse_protocols("tlsv1.1"),
              {ok, TLSV12} = libtls:tls_config_parse_protocols("tlsv1.2"),
@@ -34,6 +34,8 @@ tls_protocol_test_() ->
              , ?_assertEqual(8, TLSV12)
              , ?_assertEqual(8 bor 2, TLSV1210)
              , ?_assertEqual(8 bor 4, TLSV1211)
+             , ?_assertEqual(ok, libtls:tls_config_set_protocols(ConfigRefNo,
+                                                                 TLSV1211))
              ]
           end).
 

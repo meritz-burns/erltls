@@ -23,6 +23,7 @@
         ,tls_config_set_cert_file/2
         ,tls_config_set_key_file/2
         ,tls_config_parse_protocols/1
+        ,tls_config_set_protocols/2
         ]).
 
 start() ->
@@ -62,6 +63,9 @@ tls_config_set_key_file(ConfigRefNo, CAPath) ->
 
 tls_config_parse_protocols(Protostring) ->
     call_port({tls_config_parse_protocols, Protostring}).
+
+tls_config_set_protocols(ConfigRefNo, ProtocolsNo) ->
+    call_port({tls_config_set_protocols, ConfigRefNo, ProtocolsNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},

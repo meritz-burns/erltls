@@ -42,6 +42,7 @@ static void handle_tls_config_set_ca_path(char *, int *, char *, int *);
 static void handle_tls_config_set_cert_file(char *, int *, char *, int *);
 static void handle_tls_config_set_key_file(char *, int *, char *, int *);
 static void handle_tls_config_parse_protocols(char *, int *, char *, int *);
+static void handle_tls_config_set_protocols(char *, int *, char *, int *);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -59,7 +60,8 @@ struct handle handles[] = {
 	{"tls_config_set_ca_path", handle_tls_config_set_ca_path},
 	{"tls_config_set_cert_file", handle_tls_config_set_cert_file},
 	{"tls_config_set_key_file", handle_tls_config_set_key_file},
-	{"tls_config_parse_protocols", handle_tls_config_parse_protocols}
+	{"tls_config_parse_protocols", handle_tls_config_parse_protocols},
+	{"tls_config_set_protocols", handle_tls_config_set_protocols},
 };
 
 int
@@ -73,7 +75,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 8; k++)
+		for (k = 0; k < 9; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -99,6 +101,20 @@ handle_tls_config_parse_protocols(char *buf, int *i, char *out_buf, int *j)
 	} else {
 		encode_error(out_buf, j);
 	}
+}
+
+void
+handle_tls_config_set_protocols(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx, protocols;
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_long(buf, i, &protocols) != 0)
+		errx(1, "ei_decode_ei_long");
+
+	tls_config_set_protocols(configs[idx], (uint32_t)protocols);
+	encode_ok(out_buf, j);
 }
 
 void
