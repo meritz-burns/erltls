@@ -27,6 +27,7 @@ tls_protocol_test_() ->
                                 "tlsv1.2, tlsv1.1"),
              {ok, TLSV1210} = libtls:tls_config_parse_protocols(
                                 "tlsv1.2, tlsv1.0"),
+             error = libtls:tls_config_parse_protocols("not a valid protocal"),
              [
                ?_assertEqual(2, TLSV10)
              , ?_assertEqual(4, TLSV11)
