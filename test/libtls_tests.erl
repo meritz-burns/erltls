@@ -19,6 +19,8 @@ tls_config_test_() ->
              , ?_assertEqual(ok, libtls:tls_config_insecure_noverifyname(
                                ConfigRefNo))
              , ?_assertEqual(ok, libtls:tls_config_verify(ConfigRefNo))
+             , ?_assertEqual(ok, libtls:tls_config_set_ciphers(
+                                   ConfigRefNo, "secure"))
              ]
           end).
 

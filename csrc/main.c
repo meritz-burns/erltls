@@ -49,6 +49,7 @@ static void handle_tls_config_insecure_noverifyname(char *, int *, char *, int *
 static void handle_tls_config_insecure_noverifycert(char *, int *, char *, int *);
 static void handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_clear_keys(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -72,6 +73,7 @@ struct handle handles[] = {
 	{"tls_config_insecure_noverifycert", handle_tls_config_insecure_noverifycert},
 	{"tls_config_verify", handle_tls_config_verify},
 	{"tls_config_clear_keys", handle_tls_config_clear_keys},
+	{"tls_config_set_ciphers", handle_tls_config_set_ciphers},
 
 };
 
@@ -86,7 +88,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 13; k++)
+		for (k = 0; k < 14; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -211,7 +213,12 @@ void
 handle_tls_config_set_key_file(char *buf, int *i, char *out_buf, int *j)
 {
 	config_set_string(buf, i, out_buf, j, tls_config_set_key_file);
+}
 
+void
+handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int *j)
+{
+	config_set_string(buf, i, out_buf, j, tls_config_set_ciphers);
 }
 
 void

@@ -28,6 +28,7 @@
         ,tls_config_insecure_noverifyname/1
         ,tls_config_verify/1
         ,tls_config_clear_keys/1
+        ,tls_config_set_ciphers/2
         ]).
 
 start() ->
@@ -82,6 +83,9 @@ tls_config_verify(ConfigRefNo) ->
 
 tls_config_clear_keys(ConfigRefNo) ->
     call_port({tls_config_clear_keys, ConfigRefNo}).
+
+tls_config_set_ciphers(ConfigRefNo, Ciphers) ->
+    call_port({tls_config_set_ciphers, ConfigRefNo, Ciphers}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
