@@ -27,12 +27,14 @@
 #include "erl_comm.h"
 
 typedef int (*CONFIG_STRING_SETTER)(struct tls_config *, const char *);
+typedef void (*CONFIG_DO)(struct tls_config *);
 
 static void encode_ok(char *, int *);
 static void encode_error(char *, int *);
 static void encode_ok_tuple_header(char *, int *);
 static void decode_function_call(char *, int *, char *);
 static void config_set_string(char *, int *, char *, int *, CONFIG_STRING_SETTER);
+static void config_run(char *, int *, char *, int *, CONFIG_DO);
 
 static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
@@ -96,34 +98,19 @@ main()
 void
 handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	tls_config_verify(configs[idx]);
-	encode_ok(out_buf, j);
+	config_run(buf, i, out_buf, j, tls_config_verify);
 }
 
 void
 handle_tls_config_insecure_noverifycert(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	tls_config_insecure_noverifycert(configs[idx]);
-	encode_ok(out_buf, j);
+	config_run(buf, i, out_buf, j, tls_config_insecure_noverifycert);
 }
 
 void
 handle_tls_config_insecure_noverifyname(char *buf, int *i, char *out_buf, int *j)
 {
-	long idx;
-
-	if (ei_decode_long(buf, i, &idx) != 0)
-		errx(1, "ei_decode_ei_long");
-	tls_config_insecure_noverifyname(configs[idx]);
-	encode_ok(out_buf, j);
+	config_run(buf, i, out_buf, j, tls_config_insecure_noverifyname);
 }
 
 void
@@ -238,6 +225,17 @@ config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER
 }
 
 void
+config_run(char *buf, int *i, char *out_buf, int *j, CONFIG_DO config_do)
+{
+	long idx;
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	config_do(configs[idx]);
+	encode_ok(out_buf, j);
+}
+
+void
 decode_function_call(char *buf, int *i, char *funp)
 {
 	int arity;
@@ -266,6 +264,7 @@ encode_error(char *out_buf, int *j)
 		errx(1, "ei_encode_version");
 	if (ei_encode_atom(out_buf, j, "error"))
 		errx(1, "ei_encode_atom");
+
 }
 
 void
