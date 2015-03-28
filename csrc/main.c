@@ -50,6 +50,8 @@ static void handle_tls_config_insecure_noverifycert(char *, int *, char *, int *
 static void handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_clear_keys(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_config_set_dheparams(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -74,6 +76,8 @@ struct handle handles[] = {
 	{"tls_config_verify", handle_tls_config_verify},
 	{"tls_config_clear_keys", handle_tls_config_clear_keys},
 	{"tls_config_set_ciphers", handle_tls_config_set_ciphers},
+	{"tls_config_set_dheparams", handle_tls_config_set_dheparams},
+	{"tls_config_set_ecdhecurve", handle_tls_config_set_ecdhecurve},
 
 };
 
@@ -88,7 +92,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 14; k++)
+		for (k = 0; k < 16; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -189,6 +193,18 @@ handle_tls_config_free(char *buf, int *i, char *out_buf, int *j)
 	tls_config_free(configs[idx]);
 	configs[idx] = NULL;
 	encode_ok(out_buf, j);
+}
+
+void
+handle_tls_config_set_dheparams(char *buf, int *i, char *out_buf, int *j)
+{
+	config_set_string(buf, i, out_buf, j, tls_config_set_dheparams);
+}
+
+void
+handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, int *j)
+{
+	config_set_string(buf, i, out_buf, j, tls_config_set_ecdhecurve);
 }
 
 void

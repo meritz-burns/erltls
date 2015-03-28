@@ -21,6 +21,14 @@ tls_config_test_() ->
              , ?_assertEqual(ok, libtls:tls_config_verify(ConfigRefNo))
              , ?_assertEqual(ok, libtls:tls_config_set_ciphers(
                                    ConfigRefNo, "secure"))
+             , ?_assertEqual(ok, libtls:tls_config_set_dheparams(
+                                   ConfigRefNo, "legacy"))
+             , ?_assertEqual(error, libtls:tls_config_set_dheparams(
+                                   ConfigRefNo, "crap"))
+             , ?_assertEqual(ok, libtls:tls_config_set_ecdhecurve(
+                                   ConfigRefNo, "auto"))
+             , ?_assertEqual(error, libtls:tls_config_set_ecdhecurve(
+                                   ConfigRefNo, "crap"))
              ]
           end).
 

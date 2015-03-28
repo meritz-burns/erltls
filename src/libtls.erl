@@ -29,6 +29,8 @@
         ,tls_config_verify/1
         ,tls_config_clear_keys/1
         ,tls_config_set_ciphers/2
+        ,tls_config_set_dheparams/2
+        ,tls_config_set_ecdhecurve/2
         ]).
 
 start() ->
@@ -86,6 +88,12 @@ tls_config_clear_keys(ConfigRefNo) ->
 
 tls_config_set_ciphers(ConfigRefNo, Ciphers) ->
     call_port({tls_config_set_ciphers, ConfigRefNo, Ciphers}).
+
+tls_config_set_dheparams(ConfigRefNo, Params) ->
+    call_port({tls_config_set_dheparams, ConfigRefNo, Params}).
+
+tls_config_set_ecdhecurve(ConfigRefNo, Name) ->
+    call_port({tls_config_set_ecdhecurve, ConfigRefNo, Name}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
