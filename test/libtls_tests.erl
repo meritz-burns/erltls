@@ -14,7 +14,10 @@ tls_config_test_() ->
                                ConfigRefNo, "/fake/cert.crt"))
              , ?_assertEqual(ok, libtls:tls_config_set_key_file(
                                ConfigRefNo, "/fake/key"))
-             , ?_assertEqual(ok, libtls:tls_config_free(ConfigRefNo))
+             , ?_assertEqual(ok, libtls:tls_config_insecure_noverifycert(
+                                   ConfigRefNo))
+             , ?_assertEqual(ok, libtls:tls_config_insecure_noverifyname(
+                               ConfigRefNo))
              ]
           end).
 

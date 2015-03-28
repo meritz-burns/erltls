@@ -24,6 +24,8 @@
         ,tls_config_set_key_file/2
         ,tls_config_parse_protocols/1
         ,tls_config_set_protocols/2
+        ,tls_config_insecure_noverifycert/1
+        ,tls_config_insecure_noverifyname/1
         ]).
 
 start() ->
@@ -66,6 +68,12 @@ tls_config_parse_protocols(Protostring) ->
 
 tls_config_set_protocols(ConfigRefNo, ProtocolsNo) ->
     call_port({tls_config_set_protocols, ConfigRefNo, ProtocolsNo}).
+
+tls_config_insecure_noverifycert(ConfigRefNo) ->
+    call_port({tls_config_insecure_noverifycert, ConfigRefNo}).
+
+tls_config_insecure_noverifyname(ConfigRefNo) ->
+    call_port({tls_config_insecure_noverifyname, ConfigRefNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
