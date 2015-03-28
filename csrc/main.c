@@ -45,6 +45,7 @@ static void handle_tls_config_parse_protocols(char *, int *, char *, int *);
 static void handle_tls_config_set_protocols(char *, int *, char *, int *);
 static void handle_tls_config_insecure_noverifyname(char *, int *, char *, int *);
 static void handle_tls_config_insecure_noverifycert(char *, int *, char *, int *);
+static void handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -66,6 +67,7 @@ struct handle handles[] = {
 	{"tls_config_set_protocols", handle_tls_config_set_protocols},
 	{"tls_config_insecure_noverifyname", handle_tls_config_insecure_noverifyname},
 	{"tls_config_insecure_noverifycert", handle_tls_config_insecure_noverifycert},
+	{"tls_config_verify", handle_tls_config_verify},
 
 };
 
@@ -80,7 +82,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 11; k++)
+		for (k = 0; k < 12; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -89,6 +91,17 @@ main()
 	}
 
 	return 0;
+}
+
+void
+handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j)
+{
+	long idx;
+
+	if (ei_decode_long(buf, i, &idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	tls_config_verify(configs[idx]);
+	encode_ok(out_buf, j);
 }
 
 void

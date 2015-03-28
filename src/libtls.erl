@@ -26,6 +26,7 @@
         ,tls_config_set_protocols/2
         ,tls_config_insecure_noverifycert/1
         ,tls_config_insecure_noverifyname/1
+        ,tls_config_verify/1
         ]).
 
 start() ->
@@ -74,6 +75,9 @@ tls_config_insecure_noverifycert(ConfigRefNo) ->
 
 tls_config_insecure_noverifyname(ConfigRefNo) ->
     call_port({tls_config_insecure_noverifyname, ConfigRefNo}).
+
+tls_config_verify(ConfigRefNo) ->
+    call_port({tls_config_verify, ConfigRefNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
