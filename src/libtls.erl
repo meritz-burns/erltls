@@ -34,12 +34,8 @@
         ]).
 
 start() ->
-  Compile = proplists:lookup(compile, ?MODULE:module_info()),
-  Source = proplists:lookup(source, erlang:element(2, Compile)),
-  Dirname = filename:dirname(erlang:element(2, Source)),
-  Path = lists:delete("src", filename:split(Dirname)) ++ ["csrc", "erltls"],
-  start(filename:join(Path)).
-
+  Bin = filename:join(["c_src", "erltls"]),
+  start(Bin).
 
 start(C_BIN) ->
     spawn(?MODULE, init, [C_BIN]).

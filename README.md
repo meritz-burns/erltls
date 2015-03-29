@@ -43,21 +43,21 @@ First time:
 After changing code:
 
 ```sh
-./rebar compile
+./rebar3 compile
 ```
 
 Cleaning
 --------
 
 ```sh
-./rebar clean
+./rebar3 clean
 ```
 
 Testing
 -------
 
 ```sh
-./rebar eunit
+./rebar3 eunit
 ```
 
 When things go crazy
@@ -66,20 +66,20 @@ When things go crazy
 See `rebar.config`: as part of cleaning the Erlang, it also runs `make clean`;
 as part of compiling the Erlang, it also runs `make`.
 
-If you just want to try to get things working again without much thought, try this:
+If you just want to try to get things working again without much thought, try
+this:
 
 ```sh
 make distclean ; ./autogen.sh && ./configure
-./rebar clean
-./rebar compile
+./rebar3 clean
+./rebar3 compile
 ```
 
 Try it from erl
 ---------------
 
-```erlang
-code:add_path("ebin").
-l(libtls).
+```sh
+./rebar3 shell
 ```
 
 External documentation
@@ -118,4 +118,4 @@ Authors
 
 Released under the [ISC license][LICENSE].
 
-[LICENSE]: https://github.com/meritz-burns/erltls/blob/master/LICENSE
+[LICENSE]: LICENSE
