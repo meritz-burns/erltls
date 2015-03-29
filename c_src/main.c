@@ -26,16 +26,16 @@
 
 #include "erl_comm.h"
 
-typedef int (*CONFIG_STRING_SETTER)(struct tls_config *, const char *);
-typedef void (*CONFIG_DO)(struct tls_config *);
+typedef int (*tls_config_str_func)(struct tls_config *, const char *);
+typedef void (*tls_config_func)(struct tls_config *);
 
 static void encode_ok(char *, int *);
 static void encode_error(char *, int *);
 static void encode_ok_tuple_header(char *, int *);
 static void encode_error_tuple(char *, int *, struct tls*);
 static void decode_function_call(char *, int *, char *);
-static void config_set_string(char *, int *, char *, int *, CONFIG_STRING_SETTER);
-static void config_run(char *, int *, char *, int *, CONFIG_DO);
+static void tls_config_err_str(char *, int *, char *, int *, tls_config_str_func);
+static void tls_config_void(char *, int *, char *, int *, tls_config_func);
 
 static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
@@ -93,6 +93,8 @@ struct handle handles[] = {
 	{"tls_free", handle_tls_free},
 	{"tls_close", handle_tls_close},
 	{"tls_connect", handle_tls_connect},
+	/* Add more handlers above this */
+	{"", NULL}
 };
 
 int
@@ -106,7 +108,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 22; k++)
+		for (k = 0; handles[k].handler != NULL; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -211,25 +213,25 @@ handle_tls_free(char *buf, int *i, char *out_buf, int *j)
 void
 handle_tls_config_clear_keys(char *buf, int *i, char *out_buf, int *j)
 {
-	config_run(buf, i, out_buf, j, tls_config_clear_keys);
+	tls_config_void(buf, i, out_buf, j, tls_config_clear_keys);
 }
 
 void
 handle_tls_config_verify(char *buf, int *i, char *out_buf, int *j)
 {
-	config_run(buf, i, out_buf, j, tls_config_verify);
+	tls_config_void(buf, i, out_buf, j, tls_config_verify);
 }
 
 void
 handle_tls_config_insecure_noverifycert(char *buf, int *i, char *out_buf, int *j)
 {
-	config_run(buf, i, out_buf, j, tls_config_insecure_noverifycert);
+	tls_config_void(buf, i, out_buf, j, tls_config_insecure_noverifycert);
 }
 
 void
 handle_tls_config_insecure_noverifyname(char *buf, int *i, char *out_buf, int *j)
 {
-	config_run(buf, i, out_buf, j, tls_config_insecure_noverifyname);
+	tls_config_void(buf, i, out_buf, j, tls_config_insecure_noverifyname);
 }
 
 void
@@ -266,11 +268,10 @@ handle_tls_config_set_protocols(char *buf, int *i, char *out_buf, int *j)
 void
 handle_tls_init(char *buf, int *i, char *out_buf, int *j)
 {
-	if (tls_init() == 0) {
+	if (tls_init() == 0)
 		encode_ok(out_buf, j);
-	} else {
+	else
 		encode_error(out_buf, j);
-	}
 }
 
 void
@@ -278,9 +279,9 @@ handle_tls_config_new(char *buf, int *i, char *out_buf, int *j)
 {
 	struct tls_config *config;
 
-	if ((config = tls_config_new()) == NULL) {
+	if ((config = tls_config_new()) == NULL)
 		encode_error(out_buf, j);
-	} else {
+	else {
 		encode_ok_tuple_header(out_buf, j);
 		if (ei_encode_long(out_buf, j, config_idx) != 0)
 			errx(1, "ei_encode_long");
@@ -295,7 +296,9 @@ handle_tls_config_free(char *buf, int *i, char *out_buf, int *j)
 
 	if (ei_decode_long(buf, i, &idx) != 0)
 		errx(1, "ei_decode_ei_long");
+
 	tls_config_free(configs[idx]);
+
 	configs[idx] = NULL;
 	encode_ok(out_buf, j);
 }
@@ -303,47 +306,47 @@ handle_tls_config_free(char *buf, int *i, char *out_buf, int *j)
 void
 handle_tls_config_set_dheparams(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_dheparams);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_dheparams);
 }
 
 void
 handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_ecdhecurve);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_ecdhecurve);
 }
 
 void
 handle_tls_config_set_ca_file(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_ca_file);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_ca_file);
 }
 
 void
 handle_tls_config_set_ca_path(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_ca_path);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_ca_path);
 }
 
 void
 handle_tls_config_set_cert_file(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_cert_file);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_cert_file);
 }
 
 void
 handle_tls_config_set_key_file(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_key_file);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_key_file);
 }
 
 void
 handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int *j)
 {
-	config_set_string(buf, i, out_buf, j, tls_config_set_ciphers);
+	tls_config_err_str(buf, i, out_buf, j, tls_config_set_ciphers);
 }
 
 void
-config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER tls_config_set)
+tls_config_err_str(char *buf, int *i, char *out_buf, int *j, tls_config_str_func f)
 {
 	long idx;
 	char string[100];
@@ -353,21 +356,22 @@ config_set_string(char *buf, int *i, char *out_buf, int *j, CONFIG_STRING_SETTER
 	if (ei_decode_string(buf, i, string) != 0)
 		errx(1, "ei_decode_string");
 
-	if (tls_config_set(configs[idx], string) == 0) {
+	if (f(configs[idx], string) == 0)
 		encode_ok(out_buf, j);
-	} else {
+	else
 		encode_error(out_buf, j);
-	}
 }
 
 void
-config_run(char *buf, int *i, char *out_buf, int *j, CONFIG_DO config_do)
+tls_config_void(char *buf, int *i, char *out_buf, int *j, tls_config_func f)
 {
 	long idx;
 
 	if (ei_decode_long(buf, i, &idx) != 0)
 		errx(1, "ei_decode_ei_long");
-	config_do(configs[idx]);
+
+	f(configs[idx]);
+
 	encode_ok(out_buf, j);
 }
 
