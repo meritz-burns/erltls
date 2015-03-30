@@ -32,6 +32,7 @@
         ,tls_config_set_dheparams/2
         ,tls_config_set_ecdhecurve/2
         ,tls_client/0
+        ,tls_server/0
         ,tls_configure/2
         ,tls_free/1
         ,tls_connect/3
@@ -97,6 +98,9 @@ tls_config_set_ecdhecurve(ConfigRefNo, Name) ->
 
 tls_client() ->
     call_port({tls_client}).
+
+tls_server() ->
+    call_port({tls_server}).
 
 tls_configure(TLSRefNo, ConfigRefNo) ->
     call_port({tls_configure, TLSRefNo, ConfigRefNo}).

@@ -64,6 +64,18 @@ tls_client_test_() ->
              ]
          end).
 
+tls_server_test_() ->
+  ?setup(fun(ConfigRefNo) ->
+             {ok, TLSRefNo} = libtls:tls_server(),
+             [
+               ?_assertEqual({error, "private/public key mismatch"},
+                             libtls:tls_configure(TLSRefNo, ConfigRefNo))
+             , ?_assertEqual({error, "not a client context"},
+                             libtls:tls_connect(TLSRefNo, "localhost", "3333"))
+             , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
+             ]
+         end).
+
 start() ->
   Pid = libtls:start(),
   timer:sleep(1),

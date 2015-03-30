@@ -54,6 +54,7 @@ static void handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int 
 static void handle_tls_config_set_dheparams(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_client(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_server(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_configure(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_free(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_connect(char *buf, int *i, char *out_buf, int *j);
@@ -86,6 +87,7 @@ struct handle handles[] = {
 	{"tls_config_set_dheparams", handle_tls_config_set_dheparams},
 	{"tls_config_set_ecdhecurve", handle_tls_config_set_ecdhecurve},
 	{"tls_client", handle_tls_client},
+	{"tls_server", handle_tls_server},
 	{"tls_configure", handle_tls_configure},
 	{"tls_free", handle_tls_free},
 	{"tls_connect", handle_tls_connect},
@@ -102,7 +104,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 20; k++)
+		for (k = 0; k < 21; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -129,6 +131,21 @@ handle_tls_client(char *buf, int *i, char *out_buf, int *j)
 }
 
 void
+handle_tls_server(char *buf, int *i, char *out_buf, int *j)
+{
+	struct tls *ctx;
+
+	if ((ctx = tls_server()) == NULL) {
+		encode_error(out_buf, j);
+	} else {
+		encode_ok_tuple_header(out_buf, j);
+		if (ei_encode_long(out_buf, j, ctx_idx) != 0)
+			errx(1, "ei_encode_long");
+		ctxs[ctx_idx++] = ctx;
+	}
+}
+
+void
 handle_tls_configure(char *buf, int *i, char *out_buf, int *j)
 {
 	long current_config_idx, current_ctx_idx;
@@ -140,7 +157,7 @@ handle_tls_configure(char *buf, int *i, char *out_buf, int *j)
 	if (tls_configure(ctxs[current_config_idx], configs[current_config_idx]) == 0) {
 		encode_ok(out_buf, j);
 	} else {
-		encode_error(out_buf, j);
+		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
 	}
 }
 
