@@ -60,6 +60,7 @@ tls_client_test_() ->
                ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
              , ?_assertEqual({error, "connect"},
                              libtls:tls_connect(TLSRefNo, "localhost", "3333"))
+             , ?_assertEqual(ok, libtls:tls_close(TLSRefNo))
              , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
              ]
          end).
@@ -72,6 +73,7 @@ tls_server_test_() ->
                              libtls:tls_configure(TLSRefNo, ConfigRefNo))
              , ?_assertEqual({error, "not a client context"},
                              libtls:tls_connect(TLSRefNo, "localhost", "3333"))
+             , ?_assertEqual(ok, libtls:tls_close(TLSRefNo))
              , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
              ]
          end).

@@ -57,6 +57,7 @@ static void handle_tls_client(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_server(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_configure(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_free(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_close(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_connect(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
@@ -90,6 +91,7 @@ struct handle handles[] = {
 	{"tls_server", handle_tls_server},
 	{"tls_configure", handle_tls_configure},
 	{"tls_free", handle_tls_free},
+	{"tls_close", handle_tls_close},
 	{"tls_connect", handle_tls_connect},
 };
 
@@ -104,7 +106,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 21; k++)
+		for (k = 0; k < 22; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -174,6 +176,20 @@ handle_tls_connect(char *buf, int *i, char *out_buf, int *j)
 	if (ei_decode_string(buf, i, port) != 0)
 		errx(1, "ei_decode_string");
 	if (tls_connect(ctxs[current_ctx_idx], hostname, port) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
+	}
+}
+
+void
+handle_tls_close(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_ctx_idx;
+
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (tls_close(ctxs[current_ctx_idx]) == 0) {
 		encode_ok(out_buf, j);
 	} else {
 		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
