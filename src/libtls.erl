@@ -31,6 +31,9 @@
         ,tls_config_set_ciphers/2
         ,tls_config_set_dheparams/2
         ,tls_config_set_ecdhecurve/2
+        ,tls_client/0
+        ,tls_configure/2
+        ,tls_free/1
         ]).
 
 start() ->
@@ -90,6 +93,15 @@ tls_config_set_dheparams(ConfigRefNo, Params) ->
 
 tls_config_set_ecdhecurve(ConfigRefNo, Name) ->
     call_port({tls_config_set_ecdhecurve, ConfigRefNo, Name}).
+
+tls_client() ->
+    call_port({tls_client}).
+
+tls_configure(TLSRefNo, ConfigRefNo) ->
+    call_port({tls_configure, TLSRefNo, ConfigRefNo}).
+
+tls_free(TLSRefNo) ->
+    call_port({tls_free, TLSRefNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},

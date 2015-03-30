@@ -52,6 +52,9 @@ static void handle_tls_config_clear_keys(char *buf, int *i, char *out_buf, int *
 static void handle_tls_config_set_ciphers(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_set_dheparams(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_client(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_configure(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_free(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -59,7 +62,9 @@ struct handle {
 };
 
 struct tls_config *configs[100];
+struct tls *ctxs[100];
 long config_idx = 0;
+long ctx_idx = 0;
 
 struct handle handles[] = {
 	{"tls_init", handle_tls_init},
@@ -78,7 +83,9 @@ struct handle handles[] = {
 	{"tls_config_set_ciphers", handle_tls_config_set_ciphers},
 	{"tls_config_set_dheparams", handle_tls_config_set_dheparams},
 	{"tls_config_set_ecdhecurve", handle_tls_config_set_ecdhecurve},
-
+	{"tls_client", handle_tls_client},
+	{"tls_configure", handle_tls_configure},
+	{"tls_free", handle_tls_free},
 };
 
 int
@@ -92,7 +99,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 16; k++)
+		for (k = 0; k < 19; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -101,6 +108,49 @@ main()
 	}
 
 	return 0;
+}
+
+void
+handle_tls_client(char *buf, int *i, char *out_buf, int *j)
+{
+	struct tls *ctx;
+
+	if ((ctx = tls_client()) == NULL) {
+		encode_error(out_buf, j);
+	} else {
+		ctxs[ctx_idx++] = ctx;
+		encode_ok_tuple_header(out_buf, j);
+		if (ei_encode_long(out_buf, j, ctx_idx) != 0)
+			errx(1, "ei_encode_long");
+	}
+}
+
+void
+handle_tls_configure(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_config_idx, current_ctx_idx;
+
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_long(buf, i, &current_config_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (tls_configure(ctxs[current_config_idx], configs[current_config_idx]) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+}
+
+void
+handle_tls_free(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_ctx_idx;
+
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	tls_free(ctxs[current_ctx_idx]);
+	ctxs[current_ctx_idx] = NULL;
+	encode_ok(out_buf, j);
 }
 
 void

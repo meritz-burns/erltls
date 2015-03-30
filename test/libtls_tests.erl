@@ -53,7 +53,14 @@ tls_protocols_test_() ->
              ]
           end).
 
-
+tls_client_test_() ->
+  ?setup(fun(ConfigRefNo) ->
+             {ok, TLSRefNo} = libtls:tls_client(),
+             [
+               ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
+             , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
+             ]
+         end).
 
 start() ->
   Pid = libtls:start(),
