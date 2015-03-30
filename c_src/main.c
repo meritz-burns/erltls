@@ -55,6 +55,7 @@ static void handle_tls_config_set_ecdhecurve(char *buf, int *i, char *out_buf, i
 static void handle_tls_client(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_configure(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_free(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_connect(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -86,6 +87,7 @@ struct handle handles[] = {
 	{"tls_client", handle_tls_client},
 	{"tls_configure", handle_tls_configure},
 	{"tls_free", handle_tls_free},
+	{"tls_connect", handle_tls_connect},
 };
 
 int
@@ -99,7 +101,7 @@ main()
 
 		decode_function_call(buf, &i, funp);
 
-		for (k = 0; k < 19; k++)
+		for (k = 0; k < 20; k++)
 			if (strncmp(funp, handles[k].name, MAXATOMLEN) == 0)
 				(handles[k].handler)(buf, &i, out_buf, &j);
 
@@ -118,10 +120,10 @@ handle_tls_client(char *buf, int *i, char *out_buf, int *j)
 	if ((ctx = tls_client()) == NULL) {
 		encode_error(out_buf, j);
 	} else {
-		ctxs[ctx_idx++] = ctx;
 		encode_ok_tuple_header(out_buf, j);
 		if (ei_encode_long(out_buf, j, ctx_idx) != 0)
 			errx(1, "ei_encode_long");
+		ctxs[ctx_idx++] = ctx;
 	}
 }
 
@@ -135,6 +137,25 @@ handle_tls_configure(char *buf, int *i, char *out_buf, int *j)
 	if (ei_decode_long(buf, i, &current_config_idx) != 0)
 		errx(1, "ei_decode_ei_long");
 	if (tls_configure(ctxs[current_config_idx], configs[current_config_idx]) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error(out_buf, j);
+	}
+}
+
+void
+handle_tls_connect(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_ctx_idx;
+	char hostname[100];
+	char port[10];
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_string(buf, i, hostname) != 0)
+		errx(1, "ei_decode_string");
+	if (ei_decode_string(buf, i, port) != 0)
+		errx(1, "ei_decode_string");
+	if (tls_connect(ctxs[current_ctx_idx], hostname, port) == 0) {
 		encode_ok(out_buf, j);
 	} else {
 		encode_error(out_buf, j);

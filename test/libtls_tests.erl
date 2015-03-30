@@ -58,6 +58,8 @@ tls_client_test_() ->
              {ok, TLSRefNo} = libtls:tls_client(),
              [
                ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
+             , ?_assertEqual(error, libtls:tls_connect(
+                                      TLSRefNo, "localhost", "3333"))
              , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
              ]
          end).

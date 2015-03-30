@@ -34,6 +34,7 @@
         ,tls_client/0
         ,tls_configure/2
         ,tls_free/1
+        ,tls_connect/3
         ]).
 
 start() ->
@@ -102,6 +103,9 @@ tls_configure(TLSRefNo, ConfigRefNo) ->
 
 tls_free(TLSRefNo) ->
     call_port({tls_free, TLSRefNo}).
+
+tls_connect(TLSRefNo, Hostname, Port) ->
+    call_port({tls_connect, TLSRefNo, Hostname, Port}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},
