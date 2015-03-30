@@ -32,6 +32,7 @@ typedef void (*CONFIG_DO)(struct tls_config *);
 static void encode_ok(char *, int *);
 static void encode_error(char *, int *);
 static void encode_ok_tuple_header(char *, int *);
+static void encode_error_tuple(char *, int *, struct tls*);
 static void decode_function_call(char *, int *, char *);
 static void config_set_string(char *, int *, char *, int *, CONFIG_STRING_SETTER);
 static void config_run(char *, int *, char *, int *, CONFIG_DO);
@@ -158,7 +159,7 @@ handle_tls_connect(char *buf, int *i, char *out_buf, int *j)
 	if (tls_connect(ctxs[current_ctx_idx], hostname, port) == 0) {
 		encode_ok(out_buf, j);
 	} else {
-		encode_error(out_buf, j);
+		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
 	}
 }
 
@@ -378,4 +379,20 @@ encode_ok_tuple_header(char *out_buf, int *j)
 		errx(1, "ei_encode_tuple_header");
 	if (ei_encode_atom(out_buf, j, "ok"))
 		errx(1, "ei_encode_atom");
+}
+
+void
+encode_error_tuple(char *out_buf, int *j, struct tls *ctx)
+{
+	const char *error_message;
+
+	if (ei_encode_version(out_buf, j) != 0)
+		errx(1, "ei_encode_version");
+	if (ei_encode_tuple_header(out_buf, j, 2))
+		errx(1, "ei_encode_tuple_header");
+	if (ei_encode_atom(out_buf, j, "error"))
+		errx(1, "ei_encode_atom");
+	error_message = tls_error(ctx);
+	if (ei_encode_string(out_buf, j,  error_message))
+		errx(1, "ei_encode_string");
 }
