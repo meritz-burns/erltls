@@ -55,11 +55,19 @@ tls_protocols_test_() ->
 
 tls_client_test_() ->
   ?setup(fun(ConfigRefNo) ->
+             TLS_ALL = 2 bor 4 bor 8,
+             Ciphers = "DES-CBC3-SHA",
              {ok, TLSRefNo} = libtls:tls_client(),
              [
-               ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
-             , ?_assertEqual({error, "connect"},
-                             libtls:tls_connect(TLSRefNo, "localhost", "3333"))
+               ?_assertEqual(ok, libtls:tls_config_set_ciphers(
+                                   ConfigRefNo, Ciphers))
+             , ?_assertEqual(ok, libtls:tls_config_set_protocols(ConfigRefNo,
+                                                                 TLS_ALL))
+             , ?_assertEqual(ok, libtls:tls_config_set_ca_file(
+                                   ConfigRefNo, "/etc/ssl/certs/ca-certificates.crt"))
+             , ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
+             , ?_assertEqual(ok, libtls:tls_connect(TLSRefNo, "mike-burns.com",
+                                                    "443"))
              , ?_assertEqual(ok, libtls:tls_close(TLSRefNo))
              , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
              ]
