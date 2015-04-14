@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 static int	to_server(struct tls *, char *);
-static char *	from_server(struct tls *, size_t, size_t *);
+static int	from_server(struct tls *, char *, size_t, size_t *);
 
 int
 main()
@@ -31,6 +31,9 @@ main()
 	const char		*ciphers = "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-DSS-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA256:DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:GOST2012256-GOST89-GOST89:DHE-RSA-CAMELLIA256-SHA256:DHE-DSS-CAMELLIA256-SHA256:DHE-RSA-CAMELLIA256-SHA:DHE-DSS-CAMELLIA256-SHA:GOST2001-GOST89-GOST89:ECDH-RSA-AES256-GCM-SHA384:ECDH-ECDSA-AES256-GCM-SHA384:ECDH-RSA-AES256-SHA384:ECDH-ECDSA-AES256-SHA384:ECDH-RSA-AES256-SHA:ECDH-ECDSA-AES256-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:CAMELLIA256-SHA256:CAMELLIA256-SHA:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:DHE-DSS-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-DSS-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:DHE-RSA-CAMELLIA128-SHA256:DHE-DSS-CAMELLIA128-SHA256:DHE-RSA-CAMELLIA128-SHA:DHE-DSS-CAMELLIA128-SHA:ECDH-RSA-AES128-GCM-SHA256:ECDH-ECDSA-AES128-GCM-SHA256:ECDH-RSA-AES128-SHA256:ECDH-ECDSA-AES128-SHA256:ECDH-RSA-AES128-SHA:ECDH-ECDSA-AES128-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:CAMELLIA128-SHA256:CAMELLIA128-SHA:IDEA-CBC-SHA:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:ECDH-RSA-RC4-SHA:ECDH-ECDSA-RC4-SHA:RC4-SHA:RC4-MD5:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:ECDH-RSA-DES-CBC3-SHA:ECDH-ECDSA-DES-CBC3-SHA:DES-CBC3-SHA:EDH-RSA-DES-CBC-SHA:EDH-DSS-DES-CBC-SHA:DES-CBC-SHA";
 
 	len = 1024;
+
+	if ((buf = calloc(len, sizeof(char))) == NULL)
+		err(1, "calloc");
 
 	if (tls_init() == -1)
 		errx(1, "tls_init failed");
@@ -55,11 +58,7 @@ main()
 	TLS_INT(to_server(ctx, ""), "tls_write");
 
 	do {
-		if ((buf = from_server(ctx, len, &outlen)) == NULL) {
-			warnx("tls_read: %s", tls_error(ctx));
-			rv = 1;
-			goto done;
-		}
+		TLS_INT(from_server(ctx, buf, len, &outlen), "tls_read");
 		write(1, buf, outlen);
 	} while (len <= outlen);
 
@@ -107,24 +106,22 @@ to_server(struct tls *ctx, char *mesg)
 	return rv;
 }
 
-char *
-from_server(struct tls *ctx, size_t len, size_t *outlen)
+int
+from_server(struct tls *ctx, char *buf, size_t len, size_t *outlen)
 {
-	int	 ret;
-	char	*buf;
+	int	 ret, rv;
 
-	if ((buf = calloc(len, sizeof(char))) == NULL)
-		err(1, "calloc");
+	rv = 0;
 
 	ret = tls_read(ctx, buf, len, outlen);
 	switch (ret) {
 	case -1:
-		buf = NULL;
+		rv = -1;
 		break;
 	case TLS_READ_AGAIN:
-		buf = from_server(ctx, len, outlen);
+		rv = from_server(ctx, buf, len, outlen);
 		break;
 	}
 
-	return buf;
+	return rv;
 }
