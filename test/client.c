@@ -62,10 +62,7 @@ main()
 	TLS_INT(tls_configure(ctx, config), "tls_configure");
 	TLS_INT(tls_connect(ctx, "mike-burns.com", "443"), "tls_connect");
 
-	TLS_INT(to_server(ctx, "GET / HTTP/1.1"), "tls_write");
-	TLS_INT(to_server(ctx, "User-Agent: erltls/0.1"), "tls_write");
-	TLS_INT(to_server(ctx, "Host: mike-burns.com"), "tls_write");
-	TLS_INT(to_server(ctx, ""), "tls_write");
+	TLS_INT(to_server(ctx, "GET / HTTP/1.1\r\nUser-Agent: erltls/0.1\r\nHost: mike-burns.com\r\n\r\n"), "tls_write");
 
 	do {
 		TLS_INT(from_server(ctx, buf, LEN, &outlen), "tls_read");
@@ -89,19 +86,12 @@ done:
 int
 to_server(struct tls *ctx, char *mesg)
 {
-	char	*srv_mesg;
 	int	 ret, rv;
-	size_t	 len, outlen;
+	size_t	 outlen;
 
 	rv = 0;
 
-	len = strlen(mesg) + 2;
-	if ((srv_mesg = calloc(len + 1, sizeof(char))) == NULL)
-		err(1, "calloc");
-
-	snprintf(srv_mesg, len + 1, "%s\r\n", mesg);
-
-	ret = tls_write(ctx, srv_mesg, len, &outlen);
+	ret = tls_write(ctx, mesg, strlen(mesg), &outlen);
 	switch (ret) {
 	case -1:
 		rv = -1;
@@ -113,8 +103,6 @@ to_server(struct tls *ctx, char *mesg)
 		rv = 0;
 		break;
 	}
-
-	free(srv_mesg);
 
 	return rv;
 }

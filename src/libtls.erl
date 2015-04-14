@@ -37,6 +37,8 @@
         ,tls_free/1
         ,tls_close/1
         ,tls_connect/3
+        ,tls_write/2
+        ,tls_read/1
         ]).
 
 start() ->
@@ -114,6 +116,12 @@ tls_close(TLSRefNo) ->
 
 tls_connect(TLSRefNo, Hostname, Port) ->
     call_port({tls_connect, TLSRefNo, Hostname, Port}).
+
+tls_write(TLSRefNo, Buf) ->
+    call_port({tls_write, TLSRefNo, Buf}).
+
+tls_read(TLSRefNo) ->
+    call_port({tls_read, TLSRefNo}).
 
 call_port(Msg) ->
     ?MODULE ! {call, self(), Msg},

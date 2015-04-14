@@ -37,6 +37,9 @@ static void decode_function_call(char *, int *, char *);
 static void tls_config_err_str(char *, int *, char *, int *, tls_config_str_func);
 static void tls_config_void(char *, int *, char *, int *, tls_config_func);
 
+static int  to_server(struct tls *, char *);
+static int  from_server(struct tls *, char *, size_t, size_t *);
+
 static void handle_tls_init(char *, int *, char *, int *);
 static void handle_tls_config_new(char *, int *, char *, int *);
 static void handle_tls_config_free(char *, int *, char *, int *);
@@ -59,6 +62,8 @@ static void handle_tls_configure(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_free(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_close(char *buf, int *i, char *out_buf, int *j);
 static void handle_tls_connect(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_write(char *buf, int *i, char *out_buf, int *j);
+static void handle_tls_read(char *buf, int *i, char *out_buf, int *j);
 
 struct handle {
 	char name[MAXATOMLEN];
@@ -93,6 +98,8 @@ struct handle handles[] = {
 	{"tls_free", handle_tls_free},
 	{"tls_close", handle_tls_close},
 	{"tls_connect", handle_tls_connect},
+	{"tls_write", handle_tls_write},
+	{"tls_read", handle_tls_read},
 	/* Add more handlers above this */
 	{"", NULL}
 };
@@ -163,6 +170,84 @@ handle_tls_configure(char *buf, int *i, char *out_buf, int *j)
 	} else {
 		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
 	}
+}
+
+void
+handle_tls_write(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_ctx_idx;
+	char content[1000];
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (ei_decode_string(buf, i, content) != 0)
+		errx(1, "ei_decode_string");
+	if (to_server(ctxs[current_ctx_idx], content) == 0) {
+		encode_ok(out_buf, j);
+	} else {
+		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
+	}
+}
+
+int
+to_server(struct tls *ctx, char *mesg)
+{
+	int	 ret, rv;
+	size_t	 outlen;
+
+	rv = 0;
+
+	ret = tls_write(ctx, mesg, strlen(mesg), &outlen);
+	switch (ret) {
+	case -1:
+		rv = -1;
+		break;
+	case TLS_WRITE_AGAIN:
+		rv = to_server(ctx, mesg);
+		break;
+	case 0:
+		rv = 0;
+		break;
+	}
+
+	return rv;
+}
+
+void
+handle_tls_read(char *buf, int *i, char *out_buf, int *j)
+{
+	long current_ctx_idx;
+	char content[9999];
+	size_t outlen;
+	if (ei_decode_long(buf, i, &current_ctx_idx) != 0)
+		errx(1, "ei_decode_ei_long");
+	if (from_server(ctxs[current_ctx_idx], content, 9999, &outlen) == 0) {
+		encode_ok_tuple_header(out_buf, j);
+		if (ei_encode_string(out_buf, j,  content))
+			errx(1, "ei_encode_string");
+	} else {
+		encode_error_tuple(out_buf, j, ctxs[current_ctx_idx]);
+	}
+}
+
+int
+from_server(struct tls *ctx, char *buf, size_t len, size_t *outlen)
+{
+	int	 ret, rv = 0;
+
+	ret = tls_read(ctx, buf, len, outlen);
+	switch (ret) {
+	case -1:
+		rv = -1;
+		break;
+	case TLS_READ_AGAIN:
+		rv = from_server(ctx, buf, len, outlen);
+		break;
+	case 0:
+		rv = 0;
+		break;
+	}
+
+	return rv;
 }
 
 void

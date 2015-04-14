@@ -57,17 +57,17 @@ tls_client_test_() ->
   ?setup(fun(ConfigRefNo) ->
              TLS_ALL = 2 bor 4 bor 8,
              Ciphers = "DES-CBC3-SHA",
+             Get = "GET / HTTP/1.1\r\nUser-Agent: erltls/0.1\r\nHost: mike-burns.com\r\n\r\n",
              {ok, TLSRefNo} = libtls:tls_client(),
-             [
-               ?_assertEqual(ok, libtls:tls_config_set_ciphers(
-                                   ConfigRefNo, Ciphers))
-             , ?_assertEqual(ok, libtls:tls_config_set_protocols(ConfigRefNo,
-                                                                 TLS_ALL))
-             , ?_assertEqual(ok, libtls:tls_config_set_ca_file(
-                                   ConfigRefNo, "/etc/ssl/certs/ca-certificates.crt"))
-             , ?_assertEqual(ok, libtls:tls_configure(TLSRefNo, ConfigRefNo))
-             , ?_assertEqual(ok, libtls:tls_connect(TLSRefNo, "mike-burns.com",
-                                                    "443"))
+             ok = libtls:tls_config_set_ciphers(ConfigRefNo, Ciphers),
+             ok = libtls:tls_config_set_protocols(ConfigRefNo, TLS_ALL),
+             ok = libtls:tls_config_set_ca_file(
+                 ConfigRefNo, "/etc/ssl/certs/ca-certificates.crt"),
+             ok = libtls:tls_configure(TLSRefNo, ConfigRefNo),
+             ok = libtls:tls_connect(TLSRefNo, "mike-burns.com", "443"),
+             ok = libtls:tls_write(TLSRefNo, Get),
+             {ok, Content} =  libtls:tls_read(TLSRefNo),
+             [ ?_assertEqual("HTTP/1.1 200 OK", lists:sublist(Content, 15))
              , ?_assertEqual(ok, libtls:tls_close(TLSRefNo))
              , ?_assertEqual(ok, libtls:tls_free(TLSRefNo))
              ]
