@@ -63,9 +63,7 @@ main(int argc, char *argv[])
 	tls_config_set_protocols(config, TLS_PROTOCOLS_ALL);
 
 	if (argc > 1)
-		TLS_INT(tls_config_set_ca_file(
-			    config,
-			    argv[1]),
+		TLS_INT(tls_config_set_ca_file(config, argv[1]),
 		    "tls_config_set_ca_file");
 
 	TLS_INT(tls_configure(ctx, config), "tls_configure");

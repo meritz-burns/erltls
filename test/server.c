@@ -1,11 +1,11 @@
 /*
  * OpenBSD:
  *   gcc -g -std=c99 -Wall -Wextra -pedantic-errors -Werror \
- *     $(pkg-config libssl --cflags --libs) -ltls client.c -o client
+ *     $(pkg-config libssl --cflags --libs) -ltls server.c -o server
  *
  * Debian:
  *   gcc -g -std=c99 -Wall -Wextra -pedantic-errors -Werror \
- *     $(pkg-config libtls libssl --cflags --libs) client.c -o client
+ *     $(pkg-config libtls libssl --cflags --libs) -lbsd server.c -o server
  *
  */
 
@@ -25,7 +25,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 
 #include <err.h>
 #include <errno.h>
@@ -37,7 +36,9 @@
 #include <unistd.h>
 #include <unistd.h>
 
+#ifndef __BSD_VISIBLE
 #include <bsd/string.h>
+#endif
 
 #include <tls.h>
 
@@ -51,15 +52,15 @@ extern int errno;
  * server: 4
  */
 int
-main()
+main(int argc, char *argv[])
 {
 	struct tls_config	*config;
 	struct tls		*ctx, *cctx;
 	size_t			 outlen;
 	char			*buf;
 	/* const char		*ciphers = "DES-CBC-SHA"; */
-	int			 sock, rv = 0;
-	struct sockaddr_un	 addr;
+	int			 sock, ret, rv = 0;
+	struct sockaddr_in	 addr;
 
 	cctx = NULL;
 
@@ -75,39 +76,63 @@ main()
 	if ((ctx = tls_server()) == NULL)
 		errx(1, "tls_server");
 
-        ASSERT_INT(tls_config_set_ca_file(
-		    config, "/etc/ssl/certs/ca-certificates.crt"),
-	    "tls_config_set_ca_file");
+	if (argc > 1)
+		ASSERT_INT(tls_config_set_ca_file(config, argv[1]),
+		    "tls_config_set_ca_file");
 	ASSERT_INT(tls_config_set_key_file(
 		    config,
-		    "/home/rebecca/erltls/test/thekey.key"),
+		    "thekey.key"),
 	    "tls_config_set_key_file");
 	ASSERT_INT(tls_config_set_cert_file(
 		    config,
-		    "/home/rebecca/erltls/test/thecert.crt"),
+		    "thecert.crt"),
 	    "tls_config_set_cert_file");
+	tls_config_set_protocols(config, TLS_PROTOCOL_TLSv1_2);
 
 	ASSERT_INT(tls_configure(ctx, config), "tls_configure");
 
-	ASSERT_INT((sock = socket(AF_UNIX, SOCK_STREAM, 0)), "socket");
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		rv = 1;
+		warn("socket");
+		goto done;
+	}
 
-	memset(&addr, 0, sizeof(struct sockaddr_un));
-	addr.sun_family = AF_UNIX;
-	strlcpy(addr.sun_path, "/tmp/foo", 9);
-	if (bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) == -1) {
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(3333);
+	addr.sin_len = sizeof(addr);
+
+	if (bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr)) == -1) {
 		rv = 1;
 		warn("bind");
 		goto done;
 	}
 
-	if (listen(sock, 50) == -1) {
+	if (listen(sock, 1) == -1) {
 		rv = 1;
 		warn("listen");
 		goto done;
 	}
 
-	ASSERT_CCTX_INT(tls_accept_socket(ctx, &cctx, sock),
-	    "tls_accept_socket");
+accept:
+	ret = tls_accept_socket(ctx, &cctx, sock);
+	switch (ret) {
+	case -1:
+		rv = 1;
+		warn("bind");
+		goto done;
+		break;
+	case TLS_READ_AGAIN:
+	case TLS_WRITE_AGAIN:
+		goto accept;
+		break;
+	case 0:
+		fprintf(stderr, "the tls_accept_socket was good\n");
+		break;
+	}
+
+	fprintf(stderr, "snuck past tls_accept_socket\n");
 
 	do {
 		ASSERT_CCTX_INT(from_client(cctx, buf, LEN, &outlen), "tls_read");
