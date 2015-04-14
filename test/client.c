@@ -3,11 +3,14 @@
  *   gcc -g -std=c99 -Wall -Wextra -pedantic-errors -Werror \
  *     $(pkg-config libssl --cflags --libs) -ltls client.c -o client
  */
+
 #define TLS_INT(f, mesg) do { \
 		if (f == -1) { \
 			warnx(mesg": %s", tls_error(ctx)); rv=1; goto done; \
 		} \
         } while(0);
+
+#define LEN 1024
 
 #include <unistd.h>
 #include <err.h>
@@ -20,19 +23,20 @@
 static int	to_server(struct tls *, char *);
 static int	from_server(struct tls *, char *, size_t, size_t *);
 
+/*
+ * Connect to mike-burns.com via HTTPS and print the home page to stdout.
+ */
 int
 main()
 {
 	struct tls_config	*config;
 	struct tls		*ctx;
-	int			 rv = 0;
-	size_t			 len, outlen;
+	size_t			 outlen;
 	char			*buf;
 	const char		*ciphers = "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-DSS-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA256:DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:GOST2012256-GOST89-GOST89:DHE-RSA-CAMELLIA256-SHA256:DHE-DSS-CAMELLIA256-SHA256:DHE-RSA-CAMELLIA256-SHA:DHE-DSS-CAMELLIA256-SHA:GOST2001-GOST89-GOST89:ECDH-RSA-AES256-GCM-SHA384:ECDH-ECDSA-AES256-GCM-SHA384:ECDH-RSA-AES256-SHA384:ECDH-ECDSA-AES256-SHA384:ECDH-RSA-AES256-SHA:ECDH-ECDSA-AES256-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:CAMELLIA256-SHA256:CAMELLIA256-SHA:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:DHE-DSS-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-DSS-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:DHE-RSA-CAMELLIA128-SHA256:DHE-DSS-CAMELLIA128-SHA256:DHE-RSA-CAMELLIA128-SHA:DHE-DSS-CAMELLIA128-SHA:ECDH-RSA-AES128-GCM-SHA256:ECDH-ECDSA-AES128-GCM-SHA256:ECDH-RSA-AES128-SHA256:ECDH-ECDSA-AES128-SHA256:ECDH-RSA-AES128-SHA:ECDH-ECDSA-AES128-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:CAMELLIA128-SHA256:CAMELLIA128-SHA:IDEA-CBC-SHA:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:ECDH-RSA-RC4-SHA:ECDH-ECDSA-RC4-SHA:RC4-SHA:RC4-MD5:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:ECDH-RSA-DES-CBC3-SHA:ECDH-ECDSA-DES-CBC3-SHA:DES-CBC3-SHA:EDH-RSA-DES-CBC-SHA:EDH-DSS-DES-CBC-SHA:DES-CBC-SHA";
+	int			 rv = 0;
 
-	len = 1024;
-
-	if ((buf = calloc(len, sizeof(char))) == NULL)
+	if ((buf = calloc(LEN, sizeof(char))) == NULL)
 		err(1, "calloc");
 
 	if (tls_init() == -1)
@@ -54,13 +58,12 @@ main()
 	TLS_INT(to_server(ctx, "GET / HTTP/1.1"), "tls_write");
 	TLS_INT(to_server(ctx, "User-Agent: erltls/0.1"), "tls_write");
 	TLS_INT(to_server(ctx, "Host: mike-burns.com"), "tls_write");
-	TLS_INT(to_server(ctx, "Accept: */*"), "tls_write");
 	TLS_INT(to_server(ctx, ""), "tls_write");
 
 	do {
-		TLS_INT(from_server(ctx, buf, len, &outlen), "tls_read");
+		TLS_INT(from_server(ctx, buf, LEN, &outlen), "tls_read");
 		write(1, buf, outlen);
-	} while (len <= outlen);
+	} while (LEN <= outlen);
 
 done:
 
@@ -73,6 +76,9 @@ done:
 	return rv;
 }
 
+/*
+ * Send a HTTP command to the host.
+ */
 int
 to_server(struct tls *ctx, char *mesg)
 {
@@ -106,12 +112,13 @@ to_server(struct tls *ctx, char *mesg)
 	return rv;
 }
 
+/*
+ * Read from the host.
+ */
 int
 from_server(struct tls *ctx, char *buf, size_t len, size_t *outlen)
 {
-	int	 ret, rv;
-
-	rv = 0;
+	int	 ret, rv = 0;
 
 	ret = tls_read(ctx, buf, len, outlen);
 	switch (ret) {
@@ -120,6 +127,9 @@ from_server(struct tls *ctx, char *buf, size_t len, size_t *outlen)
 		break;
 	case TLS_READ_AGAIN:
 		rv = from_server(ctx, buf, len, outlen);
+		break;
+	case 0:
+		rv = 0;
 		break;
 	}
 
