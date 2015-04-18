@@ -1,10 +1,10 @@
 /*
  * OpenBSD:
- *   gcc -g -std=c99 -Wall -Wextra -pedantic-errors -Werror \
+ *   gcc -g -O0 -std=c99 -Wall -Wextra -pedantic-errors -Werror \
  *     $(pkg-config libssl --cflags --libs) -ltls server.c -o server
  *
  * Debian:
- *   gcc -g -std=c99 -Wall -Wextra -pedantic-errors -Werror \
+ *   gcc -g -O0 -std=c99 -Wall -Wextra -pedantic-errors -Werror \
  *     $(pkg-config libtls libssl --cflags --libs) -lbsd server.c -o server
  *
  */
@@ -29,6 +29,7 @@
 #include <err.h>
 #include <errno.h>
 #include <netdb.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,8 @@
 #endif
 
 #include <tls.h>
+
+#define NFDS 1
 
 int to_client(struct tls *, char *);
 int from_client(struct tls *, char *, size_t, size_t *);
@@ -61,6 +64,7 @@ main(int argc, char *argv[])
 	/* const char		*ciphers = "DES-CBC-SHA"; */
 	int			 sock, ret, rv = 0;
 	struct sockaddr_in	 addr;
+	struct pollfd		 pfds[NFDS];
 
 	cctx = NULL;
 
@@ -115,7 +119,6 @@ main(int argc, char *argv[])
 		goto done;
 	}
 
-accept:
 	ret = tls_accept_socket(ctx, &cctx, sock);
 	switch (ret) {
 	case -1:
@@ -125,20 +128,68 @@ accept:
 		break;
 	case TLS_READ_AGAIN:
 	case TLS_WRITE_AGAIN:
-		goto accept;
-		break;
 	case 0:
-		fprintf(stderr, "the tls_accept_socket was good\n");
 		break;
 	}
 
-	fprintf(stderr, "snuck past tls_accept_socket\n");
+	for (;;) {
+main_loop:
+		pfds[0].fd = sock;
+		pfds[0].events = POLLIN | POLLOUT;
+		ret = poll(pfds, NFDS, 500);
+		switch (ret) {
+		case -1:
+			rv = 1;
+			warn("poll");
+			goto done;
+			break;
+		case 0:
+			goto main_loop;
+			break;
+		}
 
-	do {
-		ASSERT_CCTX_INT(from_client(cctx, buf, LEN, &outlen), "tls_read");
-	} while (LEN <= outlen);
+		if (pfds[0].revents & POLLERR) {
+			rv = 1;
+			warn("POLLERR");
+			goto done;
+		}
 
-	to_client(cctx, "4");
+		if (pfds[0].revents & POLLHUP) {
+			rv = 1;
+			warn("POLLHUP");
+			goto done;
+		}
+
+		if (pfds[0].revents & POLLNVAL) {
+			rv = 1;
+			warn("POLLNVAL");
+			goto done;
+		}
+
+		if (!(pfds[0].revents & POLLIN)) {
+			warn("POLLIN");
+			goto main_loop;
+		}
+
+		if (!(pfds[0].revents & POLLOUT)) {
+			warn("POLLOUT");
+			goto main_loop;
+		}
+
+fprintf(stderr, "about to read from client\n");
+		do {
+			if (from_client(cctx, buf, LEN, &outlen) == -1) {
+fprintf(stderr, "setting rv=1\n");
+				rv = 1;
+fprintf(stderr, "printing the warning\n");
+				warnx("tls_read: %s", tls_error(cctx));
+fprintf(stderr, "cleaning up\n");
+				goto done;
+			}
+		} while (LEN <= outlen);
+
+		to_client(cctx, "4");
+	}
 
 done:
 
@@ -187,11 +238,13 @@ from_client(struct tls *ctx, char *buf, size_t len, size_t *outlen)
 	int	 ret, rv = 0;
 
 	ret = tls_read(ctx, buf, len, outlen);
+fprintf(stderr, "tls_read finished\n");
 	switch (ret) {
 	case -1:
 		rv = -1;
 		break;
 	case TLS_READ_AGAIN:
+fprintf(stderr, "got TLS_READ_AGAIN\n");
 		rv = from_client(ctx, buf, len, outlen);
 		break;
 	case 0:
