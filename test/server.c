@@ -28,6 +28,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
 #include <stdint.h>
@@ -59,7 +60,7 @@ main(int argc, char *argv[])
 {
 	struct tls_config	*config;
 	struct tls		*ctx, *cctx;
-	size_t			 outlen;
+	/*size_t			 outlen;*/
 	char			*buf;
 	/* const char		*ciphers = "DES-CBC-SHA"; */
 	int			 sock, ret, rv = 0;
@@ -101,6 +102,11 @@ main(int argc, char *argv[])
 		goto done;
 	}
 
+if ((ret = fcntl(sock, F_GETFL)) == -1)
+	err(1, "fnctl");
+fprintf(stderr, "F_GETFL = %i\n", ret);
+fprintf(stderr, "O_NONBLOCK = %i\n", O_NONBLOCK);
+
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -134,6 +140,7 @@ main(int argc, char *argv[])
 
 	for (;;) {
 main_loop:
+		memset(&pfds, 0, sizeof(pfds));
 		pfds[0].fd = sock;
 		pfds[0].events = POLLIN | POLLOUT;
 		ret = poll(pfds, NFDS, 500);
@@ -171,11 +178,16 @@ main_loop:
 			goto main_loop;
 		}
 
+		to_client(cctx, "4\r\n");
+
+		/*
 		if (!(pfds[0].revents & POLLOUT)) {
 			warn("POLLOUT");
 			goto main_loop;
 		}
+		*/
 
+		/*
 fprintf(stderr, "about to read from client\n");
 		do {
 			if (from_client(cctx, buf, LEN, &outlen) == -1) {
@@ -189,6 +201,7 @@ fprintf(stderr, "cleaning up\n");
 		} while (LEN <= outlen);
 
 		to_client(cctx, "4");
+		*/
 	}
 
 done:
