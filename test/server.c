@@ -12,11 +12,6 @@
  *
  *   ./server /etc/ssl/certs/ca-certificates.crt
  *   openssl s_client -connect localhost:3333
- *
- * Code modified from Nick Mathewson's libevent book. BSD 3-clause license,
- * copyright 2009 Nick Mathewson.
- *
- * http://www.wangafu.net/~nickm/libevent-book/01_intro.html
  */
 
 #include <netinet/in.h>
@@ -49,6 +44,7 @@ struct fd_state {
 	size_t write_upto;
 };
 
+int		 tls_accept(struct tls *, struct tls **, int);
 struct fd_state	*fd_state_init();
 int		 do_read(struct tls *, struct fd_state *);
 int		 do_write(struct tls *, struct fd_state *);
@@ -59,10 +55,9 @@ int		 do_write(struct tls *, struct fd_state *);
 int
 main(int argc, char *argv[])
 {
-	int			 sock, i, maxfd, ret, fd, rv = 0;
-	struct fd_state		*state[FD_SETSIZE];
+	int			 sock, ret, fd, rv = 0;
+	struct fd_state		*state;
 	struct sockaddr_in	 sin;
-	fd_set			 readset, writeset;
 	struct sockaddr_storage	 ss;
 	socklen_t		 slen = sizeof(ss);
 	struct tls_config	*config;
@@ -76,8 +71,7 @@ main(int argc, char *argv[])
 	sin.sin_addr.s_addr = 0;
 	sin.sin_port = htons(3333);
 
-	for (i = 0; i < FD_SETSIZE; ++i)
-		state[i] = NULL;
+	state = NULL;
 
 	if (tls_init() == -1)
 		errx(1, "tls_init failed");
@@ -102,13 +96,11 @@ main(int argc, char *argv[])
 
 	ASSERT_INT(tls_configure(ctx, config), "tls_configure");
 
-
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		warn("socket");
 		rv = 1;
 		goto done;
 	}
-	fcntl(sock, F_SETFL, O_NONBLOCK);
 
 	if (bind(sock, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
 		warn("bind");
@@ -122,79 +114,28 @@ main(int argc, char *argv[])
 		goto done;
 	}
 
-	for (;;) {
-		maxfd = sock;
-
-		FD_ZERO(&readset);
-		FD_ZERO(&writeset);
-
-		FD_SET(sock, &readset);
-
-		for (i = 0; i < FD_SETSIZE; i++)
-			if (state[i]) {
-				if (i > maxfd)
-					maxfd = i;
-
-				FD_SET(i, &readset);
-				FD_SET(i, &writeset);
-			}
-
-		if (select(maxfd + 1, &readset, &writeset, NULL, NULL) < 0) {
-			warn("select");
-			rv = 1;
-			goto done;
-		}
-
-		if (FD_ISSET(sock, &readset)) {
-			fd = accept(sock, (struct sockaddr*)&ss, &slen);
-
-			if (fd < 0)
-				warn("accept");
-			else if (fd > FD_SETSIZE)
-				close(fd);
-			else {
-				fcntl(fd, F_SETFL, O_NONBLOCK);
-
-accept:
-				ret = tls_accept_socket(ctx, &cctx, fd);
-
-				if (ret == -1) {
-					warnx("tls_acept_socket: %s", tls_error(ctx));
-					break;
-				} else if (ret == TLS_READ_AGAIN)
-					goto accept;
-				else if (ret == TLS_WRITE_AGAIN)
-					goto accept;
-
-				if ((state[fd] = fd_state_init()) == NULL) {
-					warn("fd_state_init");
-					rv = 1;
-					goto done;
-				}
-			}
-		}
-
-		for (i = 0; i < maxfd+1; i++) {
-			ret = 0;
-
-			if (i == sock)
-				continue;
-
-			if (FD_ISSET(i, &readset))
-				ret = do_read(cctx, state[i]);
-
-			if (ret == 0 && FD_ISSET(i, &writeset))
-				ret = do_write(cctx, state[i]);
-
-			if (ret) {
-				free(state[i]);
-				state[i] = NULL;
-				close(i);
-			}
-		}
+	if ((fd = accept(sock, (struct sockaddr*)&ss, &slen)) < 0) {
+		warn("accept");
+		goto done;
 	}
 
+	if (tls_accept(ctx, &cctx, fd) == -1) {
+		warnx("tls_acept_socket: %s", tls_error(ctx));
+		goto done;
+	}
+
+	if ((state = fd_state_init()) == NULL) {
+		warn("fd_state_init");
+		rv = 1;
+		goto done;
+	}
+
+	ret = do_read(cctx, state);
+
+	if (ret == 0)
+		ret = do_write(cctx, state);
 done:
+	free(state);
 	tls_close(ctx);
 	close(sock);
 
@@ -202,6 +143,19 @@ done:
 	tls_config_free(config);
 
 	return rv;
+}
+
+int
+tls_accept(struct tls *ctx, struct tls **cctx, int fd)
+{
+	int	ret;
+
+	ret = tls_accept_socket(ctx, cctx, fd);
+
+	if (ret == TLS_READ_AGAIN || ret == TLS_WRITE_AGAIN)
+		return tls_accept(ctx, cctx, fd);
+
+	return ret;
 }
 
 struct fd_state *
@@ -225,16 +179,14 @@ do_read(struct tls *ctx, struct fd_state *state)
 	ssize_t		ret;
 	size_t		outl = 0;
 
-	for (;;) {
-		if ((ret = tls_read(ctx, buf, sizeof(buf), &outl)) < 0)
-			break;
+	if ((ret = tls_read(ctx, buf, sizeof(buf), &outl)) < 0)
+		return -1;
 
-		for (i = 0; i < outl; i++)  {
-			if (state->buffer_used < sizeof(state->buffer))
-				state->buffer[state->buffer_used++] = buf[i];
-			if (buf[i] == '\n')
-				state->write_upto = state->buffer_used;
-		}
+	for (i = 0; i < outl; i++)  {
+		if (state->buffer_used < sizeof(state->buffer))
+			state->buffer[state->buffer_used++] = buf[i];
+		if (buf[i] == '\n')
+			state->write_upto = state->buffer_used;
 	}
 
 	if (ret == -1)
